@@ -2,13 +2,15 @@
 
 ## Targets
  
-`combine`: 
+`make`: makes RDF files. For now, all you can do is combine multiple 
+RDF files using the `input` section of a `singleFile` element, as shown 
+in the example below.
+
+RDF format of input and output files is determined by their file name extensions.
 
  
 
 ## Example
-
-Example configuring  [build lifecycle phases](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html):
 
 ```xml
 <build> 

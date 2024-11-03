@@ -12,7 +12,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
-@Mojo(name = "infer", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+@Mojo(name = "make", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class MakeMojo extends AbstractRdfioMojo {
 
     @Parameter(required = true)
@@ -21,30 +21,32 @@ public class MakeMojo extends AbstractRdfioMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         getLog().info("Making RDF files");
-        for (SingleFile check : products) {
+        for (SingleFile singleFile : products) {
             try {
-                performShaclInference(check);
+                makeSingleFile(singleFile);
             } catch (FileNotFoundException e) {
-                throw new MojoFailureException("Error making RDF files", e);
+                throw new MojoFailureException(
+                        "Error making RDF file " + singleFile.getOutputFile(), e);
             }
         }
     }
 
-    private void performShaclInference(SingleFile singleFileProduct)
+    private void makeSingleFile(SingleFile singleFileProduct)
             throws MojoFailureException, FileNotFoundException {
+
         getLog().info("Make RDF files configuration:");
         String[] inputFiles = getFilesForPatterns(singleFileProduct.getInput());
         getLog().info(
-                        "\tshapes: "
+                        "\tinput: "
                                 + Arrays.stream(inputFiles)
                                         .collect(Collectors.joining("\n\t", "\n\t", "\n")));
         getLog().info("\toutput: " + singleFileProduct.getOutputFile());
         if (singleFileProduct.getOutputFile() == null) {
             throw new MojoFailureException(
-                    "You must specify an output file for the inferred triples!");
+                    "You must specify the name of the output file we are making!");
         }
         if (singleFileProduct.isSkip()) {
-            getLog().info("Skipping making single RDF file");
+            getLog().info("Skip making RDF file " + singleFileProduct.getOutputFile());
             return;
         }
         debug("Loading data");
