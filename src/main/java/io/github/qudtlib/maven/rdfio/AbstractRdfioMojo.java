@@ -4,12 +4,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Arrays;
-import org.apache.jena.graph.Graph;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.sparql.graph.GraphFactory;
+import org.apache.jena.riot.RDFParser;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.tools.ant.DirectoryScanner;
@@ -43,13 +43,16 @@ public abstract class AbstractRdfioMojo extends AbstractMojo {
         }
     }
 
-    protected Graph loadRdf(String[] files) {
-        Graph graph = GraphFactory.createGraphMem();
+    protected Model loadRdf(String[] files) {
+        Model model = ModelFactory.createDefaultModel();
+
         for (String file : files) {
             debug("Loading %s", file);
-            RDFDataMgr.read(graph, new File(basedir, file).getAbsolutePath());
+            File inFile = new File(basedir, file);
+            RDFParser.source(inFile.getAbsolutePath()).parse(model.getGraph());
         }
-        return graph;
+        debug("Loaded %d triples", model.size());
+        return model;
     }
 
     protected void debug(String pattern, Object... args) {

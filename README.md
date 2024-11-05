@@ -8,6 +8,12 @@ in the example below.
 
 RDF format of input and output files is determined by their file name extensions.
 
+How filters work:
+* filter/include keeps all triples that contain one of the listed predicates
+* filter/exclude keeps all triples that do not contain any of the listed predicates
+* multiple include and exclude elements are allowed, each is applied to the whole RDF
+graph. They are applied in sequence.
+
  
 
 ## Example
@@ -32,11 +38,17 @@ RDF format of input and output files is determined by their file name extensions
                         <input>
                             <include>**/*.ttl</include>
                         </input>
+                        <filters>
+                            <exclude>
+                                <predicate>rdfs:comment</predicate>
+                            </exclude>
+                        </filters>
                         <outputFile>target/combined.ttl</outputFile>
                     </singleFile>
                 </products>
             </configuration>
         </execution>
+      </executions>
     </plugin>
   </plugins>
 </build>

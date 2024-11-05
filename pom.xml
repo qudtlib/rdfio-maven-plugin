@@ -4,7 +4,7 @@
 
     <groupId>io.github.qudtlib</groupId>
     <artifactId>rdfio-maven-plugin</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <name>Maven RDF I/O Plugin</name>
     <url>https://github.com/qudtlib/rdfio-maven-plugin/</url>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.apache.jena</groupId>
             <artifactId>jena-arq</artifactId>
-            <version>4.10.0</version>
+            <version>5.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>

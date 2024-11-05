@@ -4,8 +4,7 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.jena.graph.Graph;
-import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Model;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -50,10 +49,8 @@ public class MakeMojo extends AbstractRdfioMojo {
             return;
         }
         debug("Loading data");
-        Graph inputGraph = loadRdf(inputFiles);
-        writeModelToFile(
-                singleFileProduct.getOutputFile(),
-                ModelFactory.createModelForGraph(inputGraph),
-                "writing RDF data to %s");
+        Model model = loadRdf(inputFiles);
+        singleFileProduct.filter(model);
+        writeModelToFile(singleFileProduct.getOutputFile(), model, "writing RDF data to %s");
     }
 }
