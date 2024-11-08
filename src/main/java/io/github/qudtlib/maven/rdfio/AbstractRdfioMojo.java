@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.graph.Node;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.rdf.model.impl.StatementImpl;
@@ -58,14 +59,17 @@ public abstract class AbstractRdfioMojo extends AbstractMojo {
                 String stringValue;
                 try {
                     stringValue = object.asLiteral().getString();
+                    RDFDatatype rdfDatatype = object.asLiteral().getDatatype();
                     Matcher m = containsR.matcher(stringValue);
                     if (m.find()) {
                         stringValue = m.replaceAll("");
+                        RDFNode newObject =
+                                rdfDatatype == null
+                                        ? ResourceFactory.createStringLiteral(stringValue)
+                                        : ResourceFactory.createTypedLiteral(
+                                                stringValue, rdfDatatype);
                         Statement newStatement =
-                                new StatementImpl(
-                                        s.getSubject(),
-                                        s.getPredicate(),
-                                        ResourceFactory.createStringLiteral(stringValue));
+                                new StatementImpl(s.getSubject(), s.getPredicate(), newObject);
                         newStatements.add(newStatement);
                         it.remove();
                     }
