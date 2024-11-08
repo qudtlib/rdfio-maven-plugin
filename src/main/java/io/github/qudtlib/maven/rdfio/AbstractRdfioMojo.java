@@ -25,9 +25,6 @@ public abstract class AbstractRdfioMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.basedir}", readonly = true)
     protected File basedir;
 
-    @Parameter(defaultValue = "${project.build.directory}", readonly = true)
-    protected File target;
-
     static String[] splitPatterns(String patterns) {
         return Arrays.stream(patterns.split("(\\s|\n)*([,\n])(\\s|\n)*"))
                 .map(String::trim)
