@@ -31,7 +31,7 @@ public class MakeMojo extends AbstractRdfioMojo {
     }
 
     private void makeSingleFile(SingleFile singleFileProduct)
-            throws MojoFailureException, FileNotFoundException {
+            throws MojoFailureException, FileNotFoundException, MojoExecutionException {
 
         getLog().info("Make RDF files configuration:");
         String[] inputFiles = getFilesForPatterns(singleFileProduct.getInput());
