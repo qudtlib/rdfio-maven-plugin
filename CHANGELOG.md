@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed bug only observed in some build environments that caused the SparqlUpdateFilter failing to be instantiated.  
+- Fixed bug only observed in some build environments that caused the SparqlUpdateFilter failing to be instantiated.
 
 ## [1.2.0] - 2024-11-15
 ### Added
