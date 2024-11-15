@@ -1,6 +1,7 @@
 package io.github.qudtlib.maven.rdfio.filter;
 
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
@@ -24,10 +25,11 @@ public class SparqlUpdateFilter extends AbstractFilter {
         try {
             parsedUpdate = UpdateFactory.create(updateWithPrefixes);
         } catch (Exception e) {
-            getLog().error("Cannot parse SPARQL Update: \n");
-            getLog().error(updateWithPrefixes);
-            getLog().error("\nProblem:");
-            getLog().error(e.getMessage());
+            getLog().error(
+                            String.format(
+                                    "Cannot parse SPARQL Update: \n%s",
+                                    withLineNumbers(updateWithPrefixes)));
+            getLog().error(String.format("Problem:\n%s", e.getMessage()));
             throw new MojoExecutionException("Error parsing SPARQL Update (see error output)");
         }
         Dataset ds = DatasetFactory.createGeneral();
@@ -36,6 +38,14 @@ public class SparqlUpdateFilter extends AbstractFilter {
         execution.execute();
         model.removeAll();
         model.add(ds.getDefaultModel());
+    }
+
+    private String withLineNumbers(String updateWithPrefixes) {
+        String[] lines = updateWithPrefixes.split("\n");
+        int width = String.valueOf(lines.length).length();
+        return IntStream.range(0, lines.length)
+                .mapToObj(i -> String.format("%" + width + "d %s", i + 1, lines[i]))
+                .collect(Collectors.joining("\n"));
     }
 
     private String addPrefixes(String update, Model model) {

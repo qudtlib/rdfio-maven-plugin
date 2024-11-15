@@ -22,8 +22,8 @@ public class Filters {
     }
 
     @Parameter
-    public void setSparqlUpdate(SparqlUpdateFilter update) {
-        filters.add(update);
+    public void setSparqlUpdate(String update) {
+        filters.add(new SparqlUpdateFilter(update));
     }
 
     public List<Filter> getFilters() {

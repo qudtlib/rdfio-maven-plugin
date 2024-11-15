@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed bug only observed in some build environments that caused the SparqlUpdateFilter failing to be instantiated.  
+
 ## [1.2.0] - 2024-11-15
 ### Added
 - EachFile product type, allowing for a set of input files to be processed individually and optionally changed in-place.
