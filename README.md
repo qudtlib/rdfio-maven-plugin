@@ -39,12 +39,56 @@ graph. They are applied in sequence.
                             <include>**/*.ttl</include>
                         </input>
                         <filters>
+                            <!-- filters are executed in order. Prefixes that occor in the input can be used -->
                             <exclude>
                                 <predicate>rdfs:comment</predicate>
+                            </exclude>
+                            <sparqlUpdate>
+                                DELETE WHERE {?any rdf:type ex:WrongType }
+                            </sparqlUpdate>
+                            <exclude>
+                                <predicate>rdfs:label</predicate>
                             </exclude>
                         </filters>
                         <outputFile>target/combined.ttl</outputFile>
                     </singleFile>
+                    <eachFile>
+                        <replaceInputFiles>true</replaceInputFiles>
+                        <input>
+                            <include>**/*.ttl</include>
+                        </input>
+                        <filters>
+                            <!-- filters are executed in order. Prefixes that occor in the input can be used -->
+                            <exclude>
+                                <predicate>rdfs:comment</predicate>
+                            </exclude>
+                            <sparqlUpdate>
+                                DELETE WHERE {?any rdf:type ex:WrongType }
+                            </sparqlUpdate>
+                            <exclude>
+                                <predicate>rdfs:label</predicate>
+                            </exclude>
+                        </filters>
+                    </eachFile>
+                    <eachFile>
+                        <replaceInputFiles>false</replaceInputFiles>
+                        <outputDir>target/myfiles</outputDir>
+                        <input>
+                            <include>**/*.ttl</include>
+                        </input>
+                        <filters>
+                            <!-- filters are executed in order. Prefixes that occor in the input can be used -->
+                            <exclude>
+                                <predicate>rdfs:comment</predicate>
+                            </exclude>
+                            <sparqlUpdate>
+                                DELETE WHERE {?any rdf:type ex:WrongType }
+                            </sparqlUpdate>
+                            <exclude>
+                                <predicate>rdfs:label</predicate>
+                            </exclude>
+                        </filters>
+                    </eachFile>
                 </products>
             </configuration>
         </execution>

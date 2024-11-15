@@ -1,5 +1,6 @@
 package io.github.qudtlib.maven.rdfio;
 
+import io.github.qudtlib.maven.rdfio.filter.IncludeExcludePatterns;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
