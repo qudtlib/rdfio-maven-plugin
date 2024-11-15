@@ -1,4 +1,4 @@
-package io.github.qudtlib.maven.rdfio;
+package io.github.qudtlib.maven.rdfio.filter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,11 +8,11 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.maven.plugins.annotations.Parameter;
 
-public abstract class AbstractFilter implements Filter {
+public abstract class AbstractPredicateFilter extends AbstractFilter implements Filter {
 
     protected boolean include;
 
-    public AbstractFilter(boolean include) {
+    public AbstractPredicateFilter(boolean include) {
         this.include = include;
     }
 

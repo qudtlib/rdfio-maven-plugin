@@ -1,4 +1,4 @@
-package io.github.qudtlib.maven.rdfio;
+package io.github.qudtlib.maven.rdfio.filter;
 
 import org.apache.maven.plugins.annotations.Parameter;
 

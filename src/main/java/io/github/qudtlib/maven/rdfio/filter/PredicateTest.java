@@ -1,4 +1,4 @@
-package io.github.qudtlib.maven.rdfio;
+package io.github.qudtlib.maven.rdfio.filter;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -8,8 +8,8 @@ import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 
 public class PredicateTest implements Predicate<Statement> {
-    private String predicate;
-    private AtomicReference<Resource> predicateResourceRef = new AtomicReference<>();
+    private final String predicate;
+    private final AtomicReference<Resource> predicateResourceRef = new AtomicReference<>();
 
     public PredicateTest(String predicate) {
         this.predicate = predicate;
@@ -36,10 +36,8 @@ public class PredicateTest implements Predicate<Statement> {
 
     private String expandIfPrefixed(String predicate, Map<String, String> prefixMap) {
         String prefix = predicate.replaceAll(":.+$", "");
-        if (prefix != null) {
-            if (prefixMap.containsKey(prefix)) {
-                return prefixMap.get(prefix) + predicate.substring(prefix.length() + 1);
-            }
+        if (prefixMap.containsKey(prefix)) {
+            return prefixMap.get(prefix) + predicate.substring(prefix.length() + 1);
         }
         return predicate;
     }
