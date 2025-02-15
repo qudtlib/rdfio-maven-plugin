@@ -13,14 +13,14 @@ import org.apache.maven.plugin.MojoExecutionException;
 
 public class SparqlUpdateFilter extends AbstractFilter {
 
-    private final String update;
+    protected final String update;
 
     public SparqlUpdateFilter(String update) {
         this.update = update;
     }
 
     public void filter(Model model) throws MojoExecutionException {
-        String updateWithPrefixes = addPrefixes(update, model);
+        String updateWithPrefixes = addPrefixes(getSparqlUpdateString(), model);
         UpdateRequest parsedUpdate;
         try {
             parsedUpdate = UpdateFactory.create(updateWithPrefixes);
@@ -38,6 +38,10 @@ public class SparqlUpdateFilter extends AbstractFilter {
         execution.execute();
         model.removeAll();
         model.add(ds.getDefaultModel());
+    }
+
+    protected String getSparqlUpdateString() throws MojoExecutionException {
+        return this.update;
     }
 
     private String withLineNumbers(String updateWithPrefixes) {

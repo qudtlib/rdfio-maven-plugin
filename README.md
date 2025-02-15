@@ -4,15 +4,21 @@
  
 `make`: makes RDF files. For now, all you can do is combine multiple 
 RDF files using the `input` section of a `singleFile` element, as shown 
-in the example below.
+in the example below, filter triples and use SPARQL Update queries to manipulate data.
 
 RDF format of input and output files is determined by their file name extensions.
 
 How filters work:
-* filter/include keeps all triples that contain one of the listed predicates
-* filter/exclude keeps all triples that do not contain any of the listed predicates
-* multiple include and exclude elements are allowed, each is applied to the whole RDF
-graph. They are applied in sequence.
+* filter types: 
+  - `<exclude>` and `<include>`: each can have multiple `<predicate>` entries, which filters triples by predicate
+  - `<sparqlUdpate>`: allows for specifying an inline SPARQL Update query. 
+    Bonus: Prefixes occurring in the data do not need to be added to the query.  
+  - `<sparqlUpdateFile>`: allows for specifying a project file to read the SPARQL Update query from. Same Bonus.
+  - `<sparqlConstruct>`: allows for specifying an inline SPARQL Construct query. Constructed triples are added to the data.
+  - `<sparqlConstructFile>`: allows for specifying a SPARQL Construct query from a project file. Constructed triples are added to the data.
+* multiple filter elements are allowed
+* each filter is applied to the whole RDF graph.
+* all filters are applied in the order they appear in the configuration
 
  
 
@@ -43,9 +49,12 @@ graph. They are applied in sequence.
                             <exclude>
                                 <predicate>rdfs:comment</predicate>
                             </exclude>
+                            <!-- change the model with an inline SPARQL update -->
                             <sparqlUpdate>
                                 DELETE WHERE {?any rdf:type ex:WrongType }
                             </sparqlUpdate>
+                            <!-- change the model with a SPARQL update read from a project file -->
+                            <sparqlUpdateFile>src/main/resources/sparql/update1.rq</sparqlUpdateFile>
                             <exclude>
                                 <predicate>rdfs:label</predicate>
                             </exclude>
