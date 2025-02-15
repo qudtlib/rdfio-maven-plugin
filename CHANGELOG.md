@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `<sparqlUpdateFile>` filter so the sparql udpate query can be read from a project file
+- Add `<sparqlConstruct>` filter so a sparql construct query can be used to generate additional triples
+- Add `<sparqlConstructFile>` filter so the sparql construct query can be read from a project file
+
 ## [1.2.1] - 2024-11-15
 ### Fixed
+
 - Fixed bug only observed in some build environments that caused the SparqlUpdateFilter failing to be instantiated.
 
 ## [1.2.0] - 2024-11-15
@@ -30,8 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.2.1...HEAD
-[1.2.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.2.0...v1.2.1
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.2.0...HEAD
 [1.2.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.1.0...v1.1.1
