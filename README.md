@@ -12,10 +12,13 @@ How filters work:
 * filter types: 
   - `<exclude>` and `<include>`: each can have multiple `<predicate>` entries, which filters triples by predicate
   - `<sparqlUdpate>`: allows for specifying an inline SPARQL Update query. 
-    Bonus: Prefixes occurring in the data do not need to be added to the query.  
+    Bonus: Prefixes occurring in the data do not need to be added to the query.
+  - `sparqlConstruct`: allows for specifying an inline SPARQL Update query.
+  - `sparqlSelect`: takes a SPARQL SELECT query, prints results to the maven log. 
   - `<sparqlUpdateFile>`: allows for specifying a project file to read the SPARQL Update query from. Same Bonus.
   - `<sparqlConstruct>`: allows for specifying an inline SPARQL Construct query. Constructed triples are added to the data.
   - `<sparqlConstructFile>`: allows for specifying a SPARQL Construct query from a project file. Constructed triples are added to the data.
+  - `<sparqlSelectFile>`: allows for specifying a SPARQL Select query from a project file. Results are printed to the maven log.
 * multiple filter elements are allowed
 * each filter is applied to the whole RDF graph.
 * all filters are applied in the order they appear in the configuration
@@ -53,6 +56,10 @@ How filters work:
                             <sparqlUpdate>
                                 DELETE WHERE {?any rdf:type ex:WrongType }
                             </sparqlUpdate>
+                            <!-- execute a select query, write results to the maven log -->
+                            <sparqlSelect>
+                              SELECT * WHERE {?s ?p ?o}
+                            </sparqlSelect>
                             <!-- change the model with a SPARQL update read from a project file -->
                             <sparqlUpdateFile>src/main/resources/sparql/update1.rq</sparqlUpdateFile>
                             <exclude>

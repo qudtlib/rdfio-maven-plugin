@@ -32,12 +32,27 @@ public class Filters {
     }
 
     @Parameter
+    public void setSparqlSelect(String select) {
+        filters.add(new SparqlSelectFilter(select));
+    }
+
+    @Parameter
     public void setSparqlUpdateFile(String filename) {
         try {
             filters.add(new SparqlUpdateFileFilter(filename, basedir));
         } catch (IOException e) {
             throw new RuntimeException(
                     String.format("Error loading sparql update from file %s", filename), e);
+        }
+    }
+
+    @Parameter
+    public void setSparqlSelectFile(String filename) {
+        try {
+            filters.add(new SparqlSelectFileFilter(filename, basedir));
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    String.format("Error loading sparql select from file %s", filename), e);
         }
     }
 
