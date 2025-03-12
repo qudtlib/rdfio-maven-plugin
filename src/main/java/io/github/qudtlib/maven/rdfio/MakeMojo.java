@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.jena.rdf.model.Model;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -51,11 +50,9 @@ public class MakeMojo extends AbstractRdfioMojo {
         singleFileProduct.setLog(getLog());
         getLog().info("Make RDF files configuration:");
         String[] inputFiles = getFilesForPatterns(singleFileProduct.getInput());
-        getLog().info(
-                        "\tinput: "
-                                + Arrays.stream(inputFiles)
-                                        .collect(Collectors.joining("\n\t", "\n\t", "\n")));
-        getLog().info("\toutput: " + singleFileProduct.getOutputFile());
+        getLog().info("input:");
+        Arrays.stream(inputFiles).sorted().forEach(f -> getLog().info("    " + f));
+        getLog().info("output: " + singleFileProduct.getOutputFile());
         if (singleFileProduct.getOutputFile() == null) {
             throw new MojoFailureException(
                     "You must specify the name of the output file we are making!");
@@ -75,16 +72,14 @@ public class MakeMojo extends AbstractRdfioMojo {
         eachFileProduct.setLog(getLog());
         getLog().info("Make RDF files configuration:");
         String[] inputFiles = getFilesForPatterns(eachFileProduct.getInput());
-        getLog().info(
-                        "\tinput: "
-                                + Arrays.stream(inputFiles)
-                                        .collect(Collectors.joining("\n\t", "\n\t", "\n")));
+        getLog().info("input:");
+        Arrays.stream(inputFiles).sorted().forEach(f -> getLog().info("    " + f));
         String outputDir =
                 Optional.ofNullable(eachFileProduct.getOutputDir()).orElse(getDefaultOutputDir());
         if (eachFileProduct.isReplaceInputFiles()) {
-            getLog().info("\toutput: input files are overwritten by result");
+            getLog().info("output: input files are overwritten");
         } else {
-            getLog().info("\toutput dir: " + outputDir);
+            getLog().info("output dir: " + outputDir);
         }
         if (eachFileProduct.isSkip()) {
             getLog().info("Skip making RDF file(s)");
