@@ -1,26 +1,36 @@
 package io.github.qudtlib.maven.rdfio.filter;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.maven.plugins.annotations.Parameter;
 
 public class IncludeExcludePatterns {
     /**
-     * Comma-separated list of ant-style patterns, such as <code>
+     * Comma-separated or newline-separated list of ant-style patterns, such as <code>
      * target/txt/**\/*.txt,target/pdf/**\/*.pdf</code>
      */
-    @Parameter private String include;
+    @Parameter private List<String> include = new ArrayList<>();
 
     /**
-     * Comma-separated list of ant-style patterns, such as <code>
+     * Comma-separated or newline-separated list of ant-style patterns, such as <code>
      * target/txt/**\/*.txt,target/pdf/**\/*.pdf</code>
      */
-    @Parameter private String exclude;
+    @Parameter private List<String> exclude = new ArrayList<>();
 
-    public String getInclude() {
-        return include == null ? "" : include;
+    public void setInclude(String include) {
+        this.include.add(include);
     }
 
-    public String getExclude() {
-        return exclude == null ? "" : exclude;
+    public void setExclude(String exclude) {
+        this.exclude.add(exclude);
+    }
+
+    public List<String> getInclude() {
+        return include;
+    }
+
+    public List<String> getExclude() {
+        return exclude;
     }
 
     @Override
