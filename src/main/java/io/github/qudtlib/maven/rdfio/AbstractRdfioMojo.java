@@ -110,8 +110,18 @@ public abstract class AbstractRdfioMojo extends AbstractMojo {
     }
 
     protected String[] getFilesForPatterns(IncludeExcludePatterns includeExcludePatterns) {
-        String[] includes = AbstractRdfioMojo.splitPatterns(includeExcludePatterns.getInclude());
-        String[] excludes = AbstractRdfioMojo.splitPatterns(includeExcludePatterns.getExclude());
+        String[] includes =
+                includeExcludePatterns.getInclude().stream()
+                        .map(AbstractRdfioMojo::splitPatterns)
+                        .flatMap(Arrays::stream)
+                        .toList()
+                        .toArray(String[]::new);
+        String[] excludes =
+                includeExcludePatterns.getExclude().stream()
+                        .map(AbstractRdfioMojo::splitPatterns)
+                        .flatMap(Arrays::stream)
+                        .toList()
+                        .toArray(String[]::new);
         DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir(basedir);
         scanner.setIncludes(includes);
