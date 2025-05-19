@@ -1,19 +1,32 @@
 package io.github.qudtlib.maven.rdfio;
 
+import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
+import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
+import io.github.qudtlib.maven.rdfio.filter.Graphs;
+import io.github.qudtlib.maven.rdfio.filter.GraphsHelper;
+import io.github.qudtlib.maven.rdfio.filter.Input;
 import io.github.qudtlib.maven.rdfio.product.EachFile;
 import io.github.qudtlib.maven.rdfio.product.Product;
 import io.github.qudtlib.maven.rdfio.product.Products;
 import io.github.qudtlib.maven.rdfio.product.SingleFile;
+import io.github.qudtlib.maven.rdfio.sparql.ShaclSparqlFunctionRegistrar;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.stream.Streams;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.sparql.function.FunctionRegistry;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.topbraid.shacl.vocabulary.SH;
 
 @Mojo(name = "make", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class MakeMojo extends AbstractRdfioMojo {
@@ -31,12 +44,20 @@ public class MakeMojo extends AbstractRdfioMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         getLog().info("Making RDF files");
+        Dataset dataset = DatasetFactory.create();
+        FileSelection shaclFunctionFileSelection = products.getImportShaclFunctions();
+        Model shaclFunctionsModel = null;
+        if (shaclFunctionFileSelection != null) {
+            importShaclFunctions(shaclFunctionFileSelection, dataset);
+            shaclFunctionsModel =
+                    dataset.getNamedModel(Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName());
+        }
         for (Product product : products.getProducts()) {
             try {
                 if (product instanceof SingleFile) {
-                    makeSingleFile((SingleFile) product);
+                    makeSingleFile((SingleFile) product, shaclFunctionsModel);
                 } else if (product instanceof EachFile) {
-                    makeEachFile((EachFile) product);
+                    makeEachFile((EachFile) product, shaclFunctionsModel);
                 }
             } catch (FileNotFoundException e) {
                 throw new MojoFailureException(
@@ -45,14 +66,40 @@ public class MakeMojo extends AbstractRdfioMojo {
         }
     }
 
-    private void makeSingleFile(SingleFile singleFileProduct)
+    private void importShaclFunctions(
+            FileSelection shaclFunctionFileSelection, Dataset targetDataset)
+            throws MojoExecutionException {
+        String[] files = FileHelper.getFilesForFileSelection(shaclFunctionFileSelection, basedir);
+        getLog().debug("Importing SHACL functions from " + Arrays.toString(files));
+        loadRdf(targetDataset, Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName(), files);
+        getLog().debug("Registering SHACL functions");
+        // we have to enable simple subclass reasoning such that a sh:SPARQLFunction is recognized
+        // as a sh:Function
+        Model shaclFunctionsModel =
+                targetDataset.getNamedModel(Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName());
+        // hack: we need to make sh:SPARQLFunction a subclass of sh:Function, otherwise topbraid
+        // will not find it.
+        shaclFunctionsModel.add(SH.SPARQLFunction, RDFS.subClassOf, SH.Function);
+        getLog().debug("sh:Function nodes found in loaded RDF:");
+        shaclFunctionsModel
+                .listSubjectsWithProperty(RDF.type, SH.Function)
+                .forEachRemaining(res -> getLog().debug("    " + res.toString()));
+        getLog().debug("sh:SPARQLFunction nodes found in loaded RDF:");
+        shaclFunctionsModel
+                .listSubjectsWithProperty(RDF.type, SH.SPARQLFunction)
+                .forEachRemaining(res -> getLog().debug("    " + res.toString()));
+        ShaclSparqlFunctionRegistrar.registerSHACLFunctions(shaclFunctionsModel);
+        FunctionRegistry registry = FunctionRegistry.get();
+        getLog().debug("Registered functions: ");
+        Streams.of(registry.keys()).sorted().forEach(uri -> getLog().debug("    " + uri));
+    }
+
+    private void makeSingleFile(SingleFile singleFileProduct, Model shaclFunctionsModel)
             throws MojoFailureException, FileNotFoundException, MojoExecutionException {
         singleFileProduct.setLog(getLog());
         getLog().info("Make RDF files configuration:");
-        String[] inputFiles = getFilesForPatterns(singleFileProduct.getInput());
-        getLog().info("input:");
-        Arrays.stream(inputFiles).sorted().forEach(f -> getLog().info("    " + f));
-        getLog().info("output: " + singleFileProduct.getOutputFile());
+        writeInputConfiguration(singleFileProduct.getInputs());
+        writeSingleFileOutputConfiguration(singleFileProduct);
         if (singleFileProduct.getOutputFile() == null) {
             throw new MojoFailureException(
                     "You must specify the name of the output file we are making!");
@@ -62,22 +109,72 @@ public class MakeMojo extends AbstractRdfioMojo {
             return;
         }
         debug("Loading data");
-        Model model = loadRdf(inputFiles);
-        singleFileProduct.process(model);
-        writeModelToFile(singleFileProduct.getOutputFile(), model, "writing RDF data to %s");
+        Dataset dataset = loadRdf(singleFileProduct.getInputs());
+        if (shaclFunctionsModel != null) {
+            dataset.addNamedModel(Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName(), shaclFunctionsModel);
+        }
+        singleFileProduct.process(dataset);
+        writeOutputToFile(
+                singleFileProduct.getOutputFile(),
+                dataset,
+                singleFileProduct.getGraphs(),
+                "writing RDF data to %s");
     }
 
-    private void makeEachFile(EachFile eachFileProduct)
+    private void writeSingleFileOutputConfiguration(SingleFile singleFileProduct) {
+        String graphSelectionInfo =
+                "(Graphs: "
+                        + singleFileProduct.getGraphs().stream()
+                                .collect(Collectors.joining(", ", "[", "]"))
+                        + ")";
+        if (GraphsHelper.isOnlyDefaultGraph(singleFileProduct.getGraphs())) {
+            graphSelectionInfo = "";
+        }
+        getLog().info(
+                        String.format(
+                                "output%s: %s ",
+                                graphSelectionInfo, singleFileProduct.getOutputFile()));
+    }
+
+    private void writeInputConfiguration(List<Input> inputs) {
+        Set<String> lines = new HashSet<>();
+        Set<String> noGraphLines = new HashSet<>();
+        Set<String> allGraphs = new HashSet<>();
+        for (Input input : inputs) {
+            String graphName = GraphsHelper.normalizeGraphName(input.getGraph());
+            allGraphs.add(graphName);
+            String prefix =
+                    String.format(
+                            "    Graph %s",
+                            Graphs.DEFAULT.getGraphName().equals(graphName)
+                                    ? "(default graph)"
+                                    : "'" + graphName + "'");
+            String[] inputFiles = FileHelper.getFilesForFileSelection(input, basedir);
+            lines.addAll(Arrays.stream(inputFiles).sorted().map(f -> prefix + ": " + f).toList());
+            noGraphLines.addAll(Arrays.stream(inputFiles).sorted().map(f -> "    " + f).toList());
+        }
+        getLog().info("input:");
+        if (GraphsHelper.isOnlyDefaultGraph(allGraphs)) {
+            noGraphLines.stream().sorted().forEach(getLog()::info);
+        } else {
+            lines.stream().sorted().forEach(getLog()::info);
+        }
+    }
+
+    private void makeEachFile(EachFile eachFileProduct, Model shaclFunctionsModel)
             throws MojoFailureException, FileNotFoundException, MojoExecutionException {
         eachFileProduct.setLog(getLog());
         getLog().info("Make RDF files configuration:");
-        String[] inputFiles = getFilesForPatterns(eachFileProduct.getInput());
-        getLog().info("input:");
-        Arrays.stream(inputFiles).sorted().forEach(f -> getLog().info("    " + f));
+        writeInputConfiguration(eachFileProduct.getInputs());
         String outputDir =
                 Optional.ofNullable(eachFileProduct.getOutputDir()).orElse(getDefaultOutputDir());
         if (eachFileProduct.isReplaceInputFiles()) {
             getLog().info("output: input files are overwritten");
+            if (eachFileProduct.getOutputDir() != null
+                    && !eachFileProduct.getOutputDir().isBlank()) {
+                getLog().warn(
+                                "Parameter 'outputDir', which is provided, is ignored because 'replaceInputFiles' is 'true'");
+            }
         } else {
             getLog().info("output dir: " + outputDir);
         }
@@ -85,15 +182,32 @@ public class MakeMojo extends AbstractRdfioMojo {
             getLog().info("Skip making RDF file(s)");
             return;
         }
-        debug("Loading data");
-        for (String inputFile : inputFiles) {
-            Model model = loadRdf(new String[] {inputFile});
-            eachFileProduct.process(model);
-            if (eachFileProduct.isReplaceInputFiles()) {
-                writeModelToFile(inputFile, model, "writing RDF data to %s");
-            } else {
-                String outputFile = new File(outputDir, new File(inputFile).getName()).toString();
-                writeModelToFile(outputFile, model, "writing RDF data to %s");
+        for (Input input : eachFileProduct.getInputs()) {
+            String[] inputFiles = FileHelper.getFilesForFileSelection(input, basedir);
+            for (String inputFile : inputFiles) {
+                debug("Loading data");
+                Dataset dataset = DatasetFactory.create();
+                loadRdf(dataset, GraphsHelper.normalizeGraphName(input.getGraph()), inputFile);
+                if (shaclFunctionsModel != null) {
+                    dataset.addNamedModel(
+                            Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName(), shaclFunctionsModel);
+                }
+                eachFileProduct.process(dataset);
+                if (eachFileProduct.isReplaceInputFiles()) {
+                    writeOutputToFile(
+                            inputFile,
+                            dataset,
+                            eachFileProduct.getGraphs(),
+                            "writing RDF data back to input file %s");
+                } else {
+                    String outputFile =
+                            new File(outputDir, new File(inputFile).getName()).toString();
+                    writeOutputToFile(
+                            outputFile,
+                            dataset,
+                            eachFileProduct.getGraphs(),
+                            "writing RDF data to %s");
+                }
             }
         }
     }

@@ -1,0 +1,10 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.com/ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:myFunction a sh:Function ;
+    sh:parameter [ sh:path ex:arg ; sh:datatype xsd:string ] ;
+    sh:select """
+    SELECT ?result
+    WHERE { BIND(CONCAT("Processed: ", ?arg) AS ?result) }
+    """ .

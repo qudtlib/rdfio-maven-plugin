@@ -8,7 +8,7 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.maven.plugins.annotations.Parameter;
 
-public abstract class AbstractPredicateFilter extends AbstractFilter implements Filter {
+public abstract class AbstractPredicateFilter extends AbstractMultiGraphPerGraphFilter {
 
     protected boolean include;
 
@@ -18,7 +18,7 @@ public abstract class AbstractPredicateFilter extends AbstractFilter implements 
 
     protected List<Predicate<Statement>> statementPredicates = new ArrayList<>();
 
-    public void filter(Model model) {
+    protected void filterModel(Model model) {
         StmtIterator it = model.listStatements();
         while (it.hasNext()) {
             Statement stmt = it.nextStatement();

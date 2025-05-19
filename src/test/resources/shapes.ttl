@@ -1,0 +1,12 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/> .
+
+ex:InferRule
+    a sh:NodeShape ;
+    sh:targetNode ex:s ;
+    sh:rule [
+        a sh:TripleRule ;
+        sh:subject sh:this ;
+        sh:predicate ex:inferred ;
+        sh:object ex:NewObject ;
+    ] .

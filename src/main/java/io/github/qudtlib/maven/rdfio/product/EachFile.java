@@ -1,17 +1,21 @@
 package io.github.qudtlib.maven.rdfio.product;
 
 import io.github.qudtlib.maven.rdfio.filter.Filters;
-import io.github.qudtlib.maven.rdfio.filter.IncludeExcludePatterns;
-import org.apache.jena.rdf.model.Model;
+import io.github.qudtlib.maven.rdfio.filter.Input;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.jena.query.Dataset;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Parameter;
 
 public class EachFile implements Product {
-    @Parameter private IncludeExcludePatterns input;
+    private final List<Input> inputs = new ArrayList<>();
 
     @Parameter(required = false)
     private String outputDir;
+
+    private final List<String> graphs = new ArrayList<>();
 
     @Parameter(defaultValue = "false")
     private boolean replaceInputFiles;
@@ -23,8 +27,22 @@ public class EachFile implements Product {
 
     private Log log;
 
-    public IncludeExcludePatterns getInput() {
-        return input;
+    @Parameter
+    public void setInput(Input input) {
+        this.inputs.add(input);
+    }
+
+    public List<Input> getInputs() {
+        return inputs;
+    }
+
+    public List<String> getGraphs() {
+        return graphs;
+    }
+
+    @Parameter
+    public void setGraph(String graph) {
+        this.graphs.add(graph);
     }
 
     public String getOutputDir() {
@@ -45,10 +63,24 @@ public class EachFile implements Product {
 
     @Override
     public String toString() {
-        return "Check{" + "shapes='" + input + '\'' + '}';
+        return "EachFile{"
+                + "inputs="
+                + inputs
+                + ", outputDir='"
+                + outputDir
+                + '\''
+                + ", graphs="
+                + graphs
+                + ", replaceInputFiles="
+                + replaceInputFiles
+                + ", skip="
+                + skip
+                + ", filters="
+                + filters
+                + '}';
     }
 
-    public void process(Model inputGraph) throws MojoExecutionException {
+    public void process(Dataset inputGraph) throws MojoExecutionException {
         if (this.filters != null) {
             this.filters.setLog(log);
             this.filters.filter(inputGraph);
