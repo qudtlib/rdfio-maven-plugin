@@ -11,7 +11,8 @@ public interface Step {
      * the previous step's hash.
      *
      * @param previousHash The hash of the previous step in the pipeline.
+     * @param state
      * @return A string representing the step's hash.
      */
-    String calculateHash(String previousHash);
+    String calculateHash(String previousHash, PipelineState state);
 }

@@ -1,11 +1,11 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
-import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
+import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -71,30 +71,20 @@ public class ShaclInferStep implements Step {
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         Model shapesModel = ModelFactory.createDefaultModel();
         if (shapes != null) {
-            if (shapes.getFile() != null) {
-                shapes.getFile().forEach(f -> RDFDataMgr.read(shapesModel, f));
-            }
-            if (shapes.getFiles() != null) {
-                Arrays.stream(
-                                FileHelper.getFilesForFileSelection(
-                                        shapes.getFiles(), state.getBaseDir()))
-                        .forEach(f -> RDFDataMgr.read(shapesModel, f));
-            }
+            RdfFileProcessor.loadRdfFiles(
+                    RdfFileProcessor.resolveFiles(
+                            shapes.getFile(), shapes.getFiles(), state.getBaseDir()),
+                    shapesModel);
             if (shapes.getGraph() != null) {
                 shapes.getGraph().forEach(g -> shapesModel.add(dataset.getNamedModel(g)));
             }
         }
         Model dataModel = ModelFactory.createDefaultModel();
         if (data != null) {
-            if (data.getFile() != null) {
-                data.getFile().forEach(f -> RDFDataMgr.read(dataModel, f));
-            }
-            if (data.getFiles() != null) {
-                Arrays.stream(
-                                FileHelper.getFilesForFileSelection(
-                                        data.getFiles(), state.getBaseDir()))
-                        .forEach(f -> RDFDataMgr.read(dataModel, f));
-            }
+            RdfFileProcessor.loadRdfFiles(
+                    RdfFileProcessor.resolveFiles(
+                            data.getFile(), data.getFiles(), state.getBaseDir()),
+                    dataModel);
             if (data.getGraph() != null) {
                 data.getGraph().forEach(g -> dataModel.add(dataset.getNamedModel(g)));
             }
@@ -119,7 +109,7 @@ public class ShaclInferStep implements Step {
     }
 
     @Override
-    public String calculateHash(String previousHash) {
+    public String calculateHash(String previousHash, PipelineState state) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));
@@ -128,10 +118,10 @@ public class ShaclInferStep implements Step {
                 digest.update(message.getBytes(StandardCharsets.UTF_8));
             }
             if (shapes != null) {
-                if (shapes.getFile() != null) {
-                    shapes.getFile()
-                            .forEach(f -> digest.update(f.getBytes(StandardCharsets.UTF_8)));
-                }
+                RdfFileProcessor.updateHashWithFiles(
+                        RdfFileProcessor.resolveFiles(
+                                shapes.getFile(), shapes.getFiles(), state.getBaseDir()),
+                        digest);
                 if (shapes.getFiles() != null) {
                     shapes.getFiles()
                             .getInclude()
@@ -146,9 +136,10 @@ public class ShaclInferStep implements Step {
                 }
             }
             if (data != null) {
-                if (data.getFile() != null) {
-                    data.getFile().forEach(f -> digest.update(f.getBytes(StandardCharsets.UTF_8)));
-                }
+                RdfFileProcessor.updateHashWithFiles(
+                        RdfFileProcessor.resolveFiles(
+                                data.getFile(), data.getFiles(), state.getBaseDir()),
+                        digest);
                 if (data.getFiles() != null) {
                     data.getFiles()
                             .getInclude()
@@ -176,7 +167,7 @@ public class ShaclInferStep implements Step {
                 sb.append(String.format("%02x", b));
             }
             return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException | IOException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
     }

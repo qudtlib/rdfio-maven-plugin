@@ -59,7 +59,7 @@ public class ForeachStep implements Step {
             metaModel.add(varRes, valueProp, ResourceFactory.createResource(graphName));
             String subPreviousHash = previousHash;
             for (Step step : body) {
-                subPreviousHash = step.calculateHash(subPreviousHash);
+                subPreviousHash = step.calculateHash(subPreviousHash, state);
                 step.execute(dataset, state);
             }
         }
@@ -67,7 +67,7 @@ public class ForeachStep implements Step {
     }
 
     @Override
-    public String calculateHash(String previousHash) {
+    public String calculateHash(String previousHash, PipelineState state) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));
@@ -85,7 +85,7 @@ public class ForeachStep implements Step {
             }
             String subPreviousHash = "";
             for (Step subStep : body) {
-                subPreviousHash = subStep.calculateHash(subPreviousHash);
+                subPreviousHash = subStep.calculateHash(subPreviousHash, state);
                 digest.update(subPreviousHash.getBytes(StandardCharsets.UTF_8));
             }
             byte[] hashBytes = digest.digest();

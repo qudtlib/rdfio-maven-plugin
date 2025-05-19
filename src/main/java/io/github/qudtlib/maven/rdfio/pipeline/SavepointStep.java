@@ -51,7 +51,7 @@ public class SavepointStep implements Step {
             return;
         }
         SavepointCache cache = state.getSavepointCache();
-        String currentHash = calculateHash(state.getPreviousStepHash());
+        String currentHash = calculateHash(state.getPreviousStepHash(), state);
         if (state.isAllowLoadingFromSavepoint()
                 && cache.isValid(id, currentHash, state.getPipelineId())) {
             cache.load(id, dataset);
@@ -63,7 +63,7 @@ public class SavepointStep implements Step {
     }
 
     @Override
-    public String calculateHash(String previousHash) {
+    public String calculateHash(String previousHash, PipelineState state) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));

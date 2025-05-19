@@ -69,7 +69,7 @@ public class WriteStep implements Step {
     }
 
     @Override
-    public String calculateHash(String previousHash) {
+    public String calculateHash(String previousHash, PipelineState state) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));

@@ -14,7 +14,7 @@ public final class RDFIO {
     public static final String NS = "http://qudtlib.org/rdfio/";
 
     /** metadata graph string must be plain string as we use it in annotations * */
-    public static final String metadataGraphString = "http://qudtlib.org/rdfio/";
+    public static final String metadataGraphString = "http://qudtlib.org/rdfio/metadata";
 
     /** Property relating a file URI to a graph URI (e.g., file://path loadsInto test:graph). */
     public static final Property loadsInto = ResourceFactory.createProperty(NS + "loadsInto");

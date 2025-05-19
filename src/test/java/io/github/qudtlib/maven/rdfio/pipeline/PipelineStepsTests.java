@@ -7,6 +7,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.jena.query.*;
@@ -45,10 +46,11 @@ public class PipelineStepsTests {
     @Test
     void testAddStepWithFile() throws MojoExecutionException, IOException {
         AddStep step = new AddStep();
-        step.setFile("test-data/input.ttl");
+        String fileArg = "target/test-output/input.ttl";
+        step.setFile(fileArg);
         step.setToGraph("test:graph");
         String ttl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
-        File inputFile = new File(baseDir, "test-data/input.ttl");
+        File inputFile = baseDir.toPath().resolve(Path.of(fileArg)).toFile();
         inputFile.getParentFile().mkdirs();
         Files.write(inputFile.toPath(), ttl.getBytes());
 
@@ -61,9 +63,10 @@ public class PipelineStepsTests {
                         ResourceFactory.createProperty("http://example.org/p"),
                         ResourceFactory.createResource("http://example.org/o")));
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
+        System.out.println(PipelineHelper.datasetToPrettyTrig(dataset));
         assertTrue(
                 metaModel.contains(
-                        ResourceFactory.createResource("file://test-data/input.ttl"),
+                        ResourceFactory.createResource("file://./target/test-output/input.ttl"),
                         RDFIO.loadsInto,
                         ResourceFactory.createResource("test:graph")));
     }
@@ -408,7 +411,7 @@ public class PipelineStepsTests {
         step.setId("sp001");
         step.setEnabled(true);
 
-        String hash = step.calculateHash("");
+        String hash = step.calculateHash("", state);
         step.execute(dataset, state);
 
         File savepointDir = state.getSavepointCache().getSavepointDir("sp001");
@@ -430,7 +433,7 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/o")),
                 "Loaded dataset should contain original triple");
 
-        String newHash = step.calculateHash("abc123");
+        String newHash = step.calculateHash("abc123", state);
         state.setPreviousStepHash("abc123");
         PipelineHelper.clearDataset(dataset);
         step.execute(dataset, state);
@@ -770,6 +773,66 @@ public class PipelineStepsTests {
                 "Should throw for invalid SPARQL query");
     }
 
+    @Test
+    void testSavepointValidationFailsOnInputFileChange()
+            throws MojoExecutionException, IOException, Exception {
+        // Create input file
+        File inputFile = new File("target/rdfio/test-output/test-input.ttl");
+        inputFile.getParentFile().mkdirs();
+        String originalContent =
+                "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
+        Files.write(inputFile.toPath(), originalContent.getBytes());
+
+        // Configure pipeline
+        Pipeline pipeline = new Pipeline();
+        pipeline.setPipelineId("test-pipeline");
+        pipeline.setMetadataGraph(RDFIO.metadataGraphString);
+        pipeline.setBaseDir(baseDir);
+        List<Step> steps = new ArrayList<>();
+        AddStep addStep = new AddStep();
+        addStep.setFile("target/rdfio/test-output/test-input.ttl");
+        addStep.setToGraph("test:graph");
+        SavepointStep savepointStep = new SavepointStep();
+        savepointStep.setId("sp001");
+        savepointStep.setEnabled(true);
+        steps.add(addStep);
+        steps.add(savepointStep);
+        pipeline.setSteps(steps);
+
+        // First execution
+        PipelineMojo mojo = new PipelineMojo();
+        setField(mojo, "pipeline", pipeline);
+        mojo.execute();
+
+        // Verify savepoint created
+        File savepointDir = state.getSavepointCache().getSavepointDir("sp001");
+        File datasetFile = new File(savepointDir, "dataset.trig");
+        assertTrue(datasetFile.exists(), "Savepoint dataset.trig should exist");
+
+        // Modify input file
+        String modifiedContent =
+                "<http://example.org/s> <http://example.org/p> <http://example.org/o2> .";
+        Files.write(inputFile.toPath(), modifiedContent.getBytes());
+
+        // Clear dataset and re-execute
+        mojo.execute();
+
+        // Verify pipeline re-executed (dataset not loaded from savepoint)
+        Model model = mojo.getDataset().getNamedModel("test:graph");
+        assertTrue(
+                model.contains(
+                        ResourceFactory.createResource("http://example.org/s"),
+                        ResourceFactory.createProperty("http://example.org/p"),
+                        ResourceFactory.createResource("http://example.org/o2")),
+                "Model should contain modified triple after re-execution");
+        assertFalse(
+                model.contains(
+                        ResourceFactory.createResource("http://example.org/s"),
+                        ResourceFactory.createProperty("http://example.org/p"),
+                        ResourceFactory.createResource("http://example.org/o")),
+                "Model should not contain original triple");
+    }
+
     private void setField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
@@ -872,7 +935,7 @@ public class PipelineStepsTests {
         }
 
         @Override
-        public String calculateHash(String previousHash) {
+        public String calculateHash(String previousHash, PipelineState state) {
             return previousHash;
         }
     }

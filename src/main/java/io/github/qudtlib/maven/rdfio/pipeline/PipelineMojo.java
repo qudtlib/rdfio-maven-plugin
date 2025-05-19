@@ -49,7 +49,7 @@ public class PipelineMojo extends AbstractMojo {
                 // Compute hashes for all steps
                 String previousHash = "";
                 for (Step step : pipeline.getSteps()) {
-                    String hash = step.calculateHash(previousHash);
+                    String hash = step.calculateHash(previousHash, state);
                     stepHashes.add(hash);
                     previousHash = hash;
                 }
@@ -79,7 +79,7 @@ public class PipelineMojo extends AbstractMojo {
             for (int i = startIndex; i < pipeline.getSteps().size(); i++) {
                 Step step = pipeline.getSteps().get(i);
                 state.setPreviousStepHash(previousHash);
-                previousHash = step.calculateHash(previousHash);
+                previousHash = step.calculateHash(previousHash, state);
                 step.execute(dataset, state);
             }
         } catch (Throwable throwable) {

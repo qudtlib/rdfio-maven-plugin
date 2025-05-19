@@ -1,22 +1,17 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
-import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
+import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -74,35 +69,24 @@ public class AddStep implements Step {
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         File baseDir = state.getBaseDir();
-        List<String> inputFiles = new ArrayList<>(file);
-        if (files != null) {
-            inputFiles.addAll(Arrays.asList(FileHelper.getFilesForFileSelection(files, baseDir)));
-        }
+        List<File> inputFiles = RdfFileProcessor.resolveFiles(file, files, baseDir);
         if (!inputFiles.isEmpty()) {
             if (toGraph == null && toGraphsPattern == null) {
                 throw new MojoExecutionException("Missing toGraph or toGraphsPattern in add step");
             }
-            for (String inputFile : inputFiles) {
+            for (File inputFile : inputFiles) {
+                String inputFilePath = inputFile.getPath().replace(File.separatorChar, '/');
                 String targetGraph =
                         toGraph != null
                                 ? toGraph
                                 : toGraphsPattern
-                                        .replace("$filePath", inputFile)
-                                        .replace("$fileName", new File(inputFile).getName());
+                                        .replace("$filePath", inputFilePath)
+                                        .replace("$fileName", inputFile.getName());
                 Model model = dataset.getNamedModel(targetGraph);
-                File resolvedFile =
-                        baseDir.toPath().resolve(Paths.get(inputFile)).toFile().getAbsoluteFile();
-                try {
-                    RDFDataMgr.read(
-                            model,
-                            new FileInputStream(resolvedFile),
-                            RDFDataMgr.determineLang(resolvedFile.getName(), null, Lang.TTL));
-                } catch (FileNotFoundException e) {
-                    throw new MojoExecutionException("Input file not found: " + resolvedFile, e);
-                }
+                RdfFileProcessor.loadRdfFiles(List.of(inputFile), model);
                 Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
                 metaModel.add(
-                        ResourceFactory.createResource("file://" + inputFile),
+                        ResourceFactory.createResource("file://" + inputFilePath),
                         RDFIO.loadsInto,
                         ResourceFactory.createResource(targetGraph));
             }
@@ -120,14 +104,13 @@ public class AddStep implements Step {
     }
 
     @Override
-    public String calculateHash(String previousHash) {
+    public String calculateHash(String previousHash, PipelineState state) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));
             digest.update("add".getBytes(StandardCharsets.UTF_8));
-            for (String f : file) {
-                digest.update(f.getBytes(StandardCharsets.UTF_8));
-            }
+            RdfFileProcessor.updateHashWithFiles(
+                    RdfFileProcessor.resolveFiles(file, files, state.getBaseDir()), digest);
             if (files != null) {
                 for (String include : files.getInclude()) {
                     digest.update(include.getBytes(StandardCharsets.UTF_8));
@@ -151,7 +134,7 @@ public class AddStep implements Step {
                 sb.append(String.format("%02x", b));
             }
             return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException | IOException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
     }
