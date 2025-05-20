@@ -24,7 +24,7 @@ public class ParsingHelper {
         return null;
     }
 
-    public static <T> void handleDomChildren(
+    public static <T> void domChildren(
             Xpp3Dom config,
             String name,
             Function<Xpp3Dom, T> childParser,
@@ -38,7 +38,47 @@ public class ParsingHelper {
         throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
     }
 
-    public static void handleStringChildren(
+    public static <T> void requiredDomChildren(
+            Xpp3Dom config,
+            String name,
+            Function<Xpp3Dom, T> childParser,
+            Consumer<T> childSetter,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        domChildren(config, name, childParser, childSetter, usageSupplier, 1, -1);
+    }
+
+    public static <T> void optionalDomChildren(
+            Xpp3Dom config,
+            String name,
+            Function<Xpp3Dom, T> childParser,
+            Consumer<T> childSetter,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        domChildren(config, name, childParser, childSetter, usageSupplier, 0, -1);
+    }
+
+    public static <T> void requiredDomChild(
+            Xpp3Dom config,
+            String name,
+            Function<Xpp3Dom, T> childParser,
+            Consumer<T> childSetter,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        domChildren(config, name, childParser, childSetter, usageSupplier, 1, 1);
+    }
+
+    public static <T> void optionalDomChild(
+            Xpp3Dom config,
+            String name,
+            Function<Xpp3Dom, T> childParser,
+            Consumer<T> childSetter,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        domChildren(config, name, childParser, childSetter, usageSupplier, 0, 1);
+    }
+
+    public static void stringChildren(
             Xpp3Dom config,
             String name,
             Consumer<String> childHandler,
@@ -48,6 +88,38 @@ public class ParsingHelper {
             throws ConfigurationParseException {
         int count = handleStringChildernInternal(config, name, childHandler, usageSupplier);
         throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+    }
+
+    public static void optionalStringChildren(
+            Xpp3Dom config,
+            String name,
+            Consumer<String> valueSetter,
+            Supplier<String> usageSupplier) {
+        stringChildren(config, name, valueSetter, usageSupplier, 0, -1);
+    }
+
+    public static void requiredStringChildren(
+            Xpp3Dom config,
+            String name,
+            Consumer<String> valueSetter,
+            Supplier<String> usageSupplier) {
+        stringChildren(config, name, valueSetter, usageSupplier, 1, -1);
+    }
+
+    public static void requiredStringChild(
+            Xpp3Dom config,
+            String name,
+            Consumer<String> valueSetter,
+            Supplier<String> usageSupplier) {
+        stringChildren(config, name, valueSetter, usageSupplier, 1, 1);
+    }
+
+    public static void optionalStringChild(
+            Xpp3Dom config,
+            String name,
+            Consumer<String> valueSetter,
+            Supplier<String> usageSupplier) {
+        stringChildren(config, name, valueSetter, usageSupplier, 0, 1);
     }
 
     private static void throwCountExceptions(

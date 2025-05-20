@@ -59,4 +59,28 @@ public class FileHelper {
             throw new RuntimeException(e);
         }
     }
+
+    public static boolean isUnderDirectory(File baseDir, File nestedFile) {
+        try {
+            // Ensure the directory is actually a directory and the file is a file
+            if (!baseDir.isDirectory()) {
+                return false;
+            }
+
+            // Get canonical paths to handle symbolic links and relative paths
+            String filePath = null;
+            filePath = nestedFile.getCanonicalPath();
+            String dirPath = baseDir.getCanonicalPath();
+
+            // Ensure directory path ends with separator for accurate prefix check
+            if (!dirPath.endsWith(File.separator)) {
+                dirPath += File.separator;
+            }
+
+            // Check if file path starts with directory path
+            return filePath.startsWith(dirPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

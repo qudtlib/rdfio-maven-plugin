@@ -82,6 +82,70 @@ public class AddStep implements Step {
         this.toGraphsPattern = toGraphsPattern;
     }
 
+    public static AddStep parse(Xpp3Dom config) {
+        if (config == null) {
+            throw new ConfigurationParseException(
+                    """
+                            Add step configuration is missing.
+                            Usage: Provide an <add> element with either <file> or <files> and a target graph via <toGraph> or <toGraphsPattern>.
+                            Example:
+                            <add>
+                                <file>data.ttl</file>
+                                <toGraph>test:graph</toGraph>
+                            </add>""");
+        }
+
+        AddStep step = new AddStep();
+        ParsingHelper.optionalStringChildren(config, "file", step::addFile, WriteStep::usage);
+        ParsingHelper.optionalStringChildren(config, "graph", step::addGraph, WriteStep::usage);
+        ParsingHelper.optionalDomChild(
+                config, "files", FileSelection::parse, step::setFileSelection, WriteStep::usage);
+        ParsingHelper.optionalDomChild(
+                config, "graphs", GraphSelection::parse, step::setGraphSelection, WriteStep::usage);
+        if (step.getGraphs().isEmpty()
+                && step.getGraphSelection() == null
+                && step.getFiles().isEmpty()
+                && step.getFileSelection() == null) {
+            throw new ConfigurationParseException(
+                    "Add step requires one of <file>, <files>, <graph>, or <graphs>.\n"
+                            + step.usage());
+        }
+        ParsingHelper.optionalStringChild(config, "toGraph", step::setToGraph, WriteStep::usage);
+        ParsingHelper.optionalStringChild(
+                config, "toGraphsPattern", step::setToGraphsPattern, WriteStep::usage);
+        if (step.getToGraph() == null && step.getToGraphsPattern() == null) {
+            throw new ConfigurationParseException(
+                    """
+                            Add step requires one of <toGraph> or <toGraphsPattern>.
+                            Usage: Specify a target graph or a graph pattern.
+                            Examples:
+                            - Target graph: <toGraph>test:graph</toGraph>
+                            - Graph pattern: <toGraphsPattern>test:graph-{0}</toGraphsPattern>""");
+        }
+        if (step.getToGraph() != null) {
+            step.setToGraphsPattern(null);
+        }
+        Pattern p = Pattern.compile("\\$\\{([^/: ]+)}");
+        if (step.getToGraphsPattern() != null) {
+            Matcher m = p.matcher(step.getToGraphsPattern());
+            if (m.find() && !KNOWN_VARIABLES.contains(m.group(1).toLowerCase(Locale.ROOT))) {
+
+                String unknownVar = m.group(0);
+                throw new ConfigurationParseException(
+                        String.format(
+                                """
+                                Encountered variable %s, which is not supported."
+                                Allowed variables in the toGraphsPattern are:
+                                   - ${path}:   the whole file path or graph URI as provided, including the last bit
+                                   - ${name}:   only the last bit of the file path/graph URI
+                                   - ${index}:  the 0-based index of the input).
+                                """,
+                                unknownVar));
+            }
+        }
+        return step;
+    }
+
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         File baseDir = state.getBaseDir();
@@ -151,13 +215,38 @@ public class AddStep implements Step {
         return sourceGraph.replaceFirst("^.*([^/\\\\: ]+)$", "");
     }
 
-    private String replaceVariables(String toGraphsPattern, String path, String name, int index) {
-        return toGraphsPattern == null
-                ? null
-                : toGraphsPattern
-                        .replaceAll("\\$\\{path}", path)
-                        .replaceAll("\\$\\{name}", name)
-                        .replaceAll("\\$\\{index}", index + "");
+    private static String replaceVariables(
+            String toGraphsPattern, String path, String name, int index) {
+        if (toGraphsPattern == null) {
+            return null;
+        }
+        return toGraphsPattern
+                .replaceAll("\\$\\{path}", path)
+                .replaceAll("\\$\\{name}", name)
+                .replaceAll("\\$\\{index}", Integer.toString(index));
+    }
+
+    public static String usage() {
+        return """
+                Usage: Specify
+                    - inputs: using <file>, <files>, <graph> or <graphs>
+                    - target graph using <toGraph> or one graph per input using <toGraphsPattern>
+                       in <toGraphPattern>,
+                        '${name}' is replaced with the last part of the input file/graph
+                        '${path}' is replaced with the whole input file/graph
+                        '${index}' is replaced with the 1-based index of the file/graph being loaded
+                Examples:
+                 - <add>
+                        <file>/src/main/resources/myinput.ttl</file>
+                        <toGraph>test:graph</toGraph>
+                   </add>
+                 - <add>
+                        <files>
+                            <include>/src/main/resources/**/*.ttl</include>
+                        </files>
+                        <toGraphPattern>test:graph:$name</toGraph>
+                   </add>
+               """;
     }
 
     @Override
@@ -195,99 +284,5 @@ public class AddStep implements Step {
         } catch (NoSuchAlgorithmException | IOException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
-    }
-
-    // AddStep.java
-    public static AddStep parse(Xpp3Dom config) throws ConfigurationParseException {
-        if (config == null) {
-            throw new ConfigurationParseException(
-                    """
-                            Add step configuration is missing.
-                            Usage: Provide an <add> element with either <file> or <files> and a target graph via <toGraph> or <toGraphsPattern>.
-                            Example:
-                            <add>
-                                <file>data.ttl</file>
-                                <toGraph>test:graph</toGraph>
-                            </add>""");
-        }
-
-        AddStep step = new AddStep();
-        ParsingHelper.handleStringChildren(config, "file", step::addFile, step::usage, 0, -1);
-        ParsingHelper.handleStringChildren(config, "graph", step::addGraph, step::usage, 0, -1);
-        ParsingHelper.handleDomChildren(
-                config, "files", FileSelection::parse, step::setFileSelection, step::usage, 0, 1);
-        ParsingHelper.handleDomChildren(
-                config,
-                "graphs",
-                GraphSelection::parse,
-                step::setGraphSelection,
-                step::usage,
-                0,
-                1);
-        if (step.getGraphs().isEmpty()
-                && step.getGraphSelection() == null
-                && step.getFiles().isEmpty()
-                && step.getFileSelection() == null) {
-            throw new ConfigurationParseException(
-                    "Add step requires one of <file>, <files>, <graph>, or <graphs>.\n"
-                            + step.usage());
-        }
-        ParsingHelper.handleStringChildren(config, "toGraph", step::setToGraph, step::usage, 0, 1);
-        ParsingHelper.handleStringChildren(
-                config, "toGraphsPattern", step::setToGraphsPattern, step::usage, 0, 1);
-        if (step.getToGraph() == null && step.getToGraphsPattern() == null) {
-            throw new ConfigurationParseException(
-                    """
-                            Add step requires one of <toGraph> or <toGraphsPattern>.
-                            Usage: Specify a target graph or a graph pattern.
-                            Examples:
-                            - Target graph: <toGraph>test:graph</toGraph>
-                            - Graph pattern: <toGraphsPattern>test:graph-{0}</toGraphsPattern>""");
-        }
-        if (step.getToGraph() != null) {
-            step.setToGraphsPattern(null);
-        }
-        Pattern p = Pattern.compile("\\$\\{([^/: ]+)}");
-        if (step.getToGraphsPattern() != null) {
-            Matcher m = p.matcher(step.getToGraphsPattern());
-            if (m.find() && !KNOWN_VARIABLES.contains(m.group(1).toLowerCase(Locale.ROOT))) {
-
-                String unknownVar = m.group(0);
-                throw new ConfigurationParseException(
-                        String.format(
-                                """
-                                Encountered variable %s, which is not supported."
-                                Allowed variables in the toGraphsPattern are:
-                                   - ${path}:   the whole file path or graph URI as provided, including the last bit
-                                   - ${name}:   only the last bit of the file path/graph URI
-                                   - ${index}:  the 0-based index of the input).
-                                """,
-                                unknownVar));
-            }
-        }
-        return step;
-    }
-
-    public String usage() {
-        return """
-                Usage: Specify
-                    - inputs: using <file>, <files>, <graph> or <graphs>
-                    - target graph using <toGraph> or one graph per input using <toGraphsPattern>
-                       in <toGraphPattern>,
-                        '${name}' is replaced with the last part of the input file/graph
-                        '${path}' is replaced with the whole input file/graph
-                        '${index}' is replaced with the 1-based index of the file/graph being loaded
-                Examples:
-                 - <add>
-                        <file>/src/main/resources/myinput.ttl</file>
-                        <toGraph>test:graph</toGraph>
-                   </add>
-                 - <add>
-                        <files>
-                            <include>/src/main/resources/**/*.ttl</include>
-                        </files>
-                        <toGraphPattern>test:graph:$name</toGraph>
-                   </add>
-               """;
     }
 }

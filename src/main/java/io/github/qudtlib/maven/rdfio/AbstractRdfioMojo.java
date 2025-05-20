@@ -1,7 +1,5 @@
 package io.github.qudtlib.maven.rdfio;
 
-import static io.github.qudtlib.maven.rdfio.filter.RdfFormatHelper.supportsQuads;
-
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.filter.Graphs;
 import io.github.qudtlib.maven.rdfio.filter.GraphsHelper;
@@ -43,7 +41,7 @@ public abstract class AbstractRdfioMojo extends AbstractMojo {
             }
             Lang lang = RDFLanguages.resourceNameToLang(outputFile, Lang.TTL);
 
-            if (supportsQuads(lang)) {
+            if (RDFLanguages.isQuads(lang)) {
                 writeQuadsToFile(outputFile, dataset, graphs, lang);
             } else {
                 if (GraphsHelper.hasNamedGraphs(dataset)) {

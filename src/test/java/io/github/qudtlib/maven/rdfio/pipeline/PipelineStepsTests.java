@@ -325,7 +325,7 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("test:graph"));
 
         WriteStep step = new WriteStep();
-        step.setGraph("test:graph");
+        step.addGraph("test:graph");
 
         step.execute(dataset, state);
 
@@ -350,7 +350,7 @@ public class PipelineStepsTests {
     @Test
     void testWriteStepNoFileMapping() {
         WriteStep step = new WriteStep();
-        step.setGraph("test:graph");
+        step.addGraph("test:graph");
         assertThrows(
                 MojoExecutionException.class,
                 () -> step.execute(dataset, state),
@@ -369,7 +369,7 @@ public class PipelineStepsTests {
                 RDFIO.loadsInto,
                 ResourceFactory.createResource("test:graph"));
         WriteStep step = new WriteStep();
-        step.setGraph("test:graph");
+        step.addGraph("test:graph");
         assertThrows(
                 MojoExecutionException.class,
                 () -> step.execute(dataset, state),
@@ -386,7 +386,7 @@ public class PipelineStepsTests {
         File outputFile = new File(testOutputBase, "custom-output.ttl");
 
         WriteStep step = new WriteStep();
-        step.setGraph("test:graph");
+        step.addGraph("test:graph");
         step.setToFile(outputFile.getPath());
 
         step.execute(dataset, state);

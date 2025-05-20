@@ -1,11 +1,13 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
+import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.maven.plugin.MojoExecutionException;
 
 public class PipelineState {
     private Dataset dataset = DatasetFactory.create();
@@ -77,5 +79,14 @@ public class PipelineState {
 
     public String getPipelineId() {
         return pipelineId;
+    }
+
+    public void requireUnderConfiguredDirs(File outputFile) throws MojoExecutionException {
+        if (!FileHelper.isUnderDirectory(baseDir, outputFile)
+                && !FileHelper.isUnderDirectory(outputBaseDir, outputFile)) {
+            throw new MojoExecutionException(
+                    "Cannot write file %s as it is neither under baseDir %s nor under baseOutputDir %s"
+                            .formatted(outputFile, baseDir, outputBaseDir));
+        }
     }
 }
