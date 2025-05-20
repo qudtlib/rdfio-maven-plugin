@@ -13,9 +13,6 @@ public final class RDFIO {
     /** Namespace for the RDF I/O vocabulary. */
     public static final String NS = "http://qudtlib.org/rdfio/";
 
-    /** metadata graph string must be plain string as we use it in annotations * */
-    public static final String metadataGraphString = "http://qudtlib.org/rdfio/metadata";
-
     /** Property relating a file URI to a graph URI (e.g., file://path loadsInto test:graph). */
     public static final Property loadsInto = ResourceFactory.createProperty(NS + "loadsInto");
 
@@ -25,8 +22,7 @@ public final class RDFIO {
     /** Resource prefix for variables (e.g., variables/fileGraph). */
     public static final String VARIABLE_PREFIX = NS + "variables/";
 
-    public static final Resource metadataGraph =
-            ResourceFactory.createResource(metadataGraphString);
+    public static final Resource metadataGraph = ResourceFactory.createResource(NS + "metadata");
 
     // Private constructor to prevent instantiation
     private RDFIO() {}

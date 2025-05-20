@@ -6,28 +6,48 @@ import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 @Mojo(name = "pipeline")
 public class PipelineMojo extends AbstractMojo {
 
-    @Parameter private Pipeline pipeline;
+    @Parameter(defaultValue = "${project}", readonly = true)
+    private MavenProject project;
+
+    @Parameter(defaultValue = "${project.basedir}", readonly = true)
+    private File baseDir;
+
+    @Parameter(defaultValue = "${project.build.directory}", readonly = true)
+    private File workBaseDir;
+
+    @Parameter(defaultValue = "${mojoExecution}", readonly = true)
+    private MojoExecution mojoExecution;
+
+    private Xpp3Dom configuration;
+
+    private Pipeline pipeline;
+
     Dataset dataset = null;
 
     @Override
     public void execute() throws MojoExecutionException {
         try {
             if (pipeline == null) {
+                parseConfiguration();
+            }
+            if (pipeline == null) {
                 throw new MojoExecutionException("Pipeline configuration is required");
             }
             // Assign default savepoint IDs
             int savepointCount = 0;
             for (Step step : pipeline.getSteps()) {
-                if (step instanceof SavepointStep) {
+                if (step instanceof SavepointStep savepoint) {
                     savepointCount++;
-                    SavepointStep savepoint = (SavepointStep) step;
                     if (savepoint.getId() == null) {
                         savepoint.setId(String.format("sp%03d", savepointCount));
                     }
@@ -36,7 +56,7 @@ public class PipelineMojo extends AbstractMojo {
             dataset = DatasetFactory.create();
             PipelineState state =
                     new PipelineState(
-                            pipeline.getPipelineId(),
+                            pipeline.getId(),
                             pipeline.getMetadataGraph(),
                             pipeline.getBaseDir(),
                             new File("target"));
@@ -57,9 +77,8 @@ public class PipelineMojo extends AbstractMojo {
                 // Check savepoints in reverse order
                 for (int i = pipeline.getSteps().size() - 1; i >= 0; i--) {
                     Step step = pipeline.getSteps().get(i);
-                    if (step instanceof SavepointStep) {
-                        SavepointStep savepoint = (SavepointStep) step;
-                        if (savepoint.isValid(dataset, state, stepHashes.get(i))) {
+                    if (step instanceof SavepointStep savepoint) {
+                        if (savepoint.isValid(state, stepHashes.get(i))) {
                             startIndex = i; // Start with the valid savepoint
                             break;
                         }
@@ -87,12 +106,35 @@ public class PipelineMojo extends AbstractMojo {
         }
     }
 
-    /**
-     * Package-private getter for testing purposes.
-     *
-     * @return
-     */
+    void parseConfiguration() throws MojoExecutionException {
+        if (configuration == null) {
+            configuration = mojoExecution.getConfiguration();
+        }
+        pipeline = Pipeline.parse(configuration, baseDir, RDFIO.metadataGraph.toString());
+    }
+
+    /** Package-private getter for testing purposes. */
     Dataset getDataset() {
         return dataset;
+    }
+
+    Pipeline getPipeline() {
+        return this.pipeline;
+    }
+
+    public void setProject(MavenProject project) {
+        this.project = project;
+    }
+
+    public void setBaseDir(File baseDir) {
+        this.baseDir = baseDir;
+    }
+
+    public void setWorkBaseDir(File workBaseDir) {
+        this.workBaseDir = workBaseDir;
+    }
+
+    public void setConfiguration(Xpp3Dom configuration) {
+        this.configuration = configuration;
     }
 }

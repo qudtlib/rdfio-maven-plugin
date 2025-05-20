@@ -20,12 +20,12 @@ public class PipelineHelper {
         List<Pattern> excludePatterns = new ArrayList<>();
 
         // Convert include patterns to regex
-        for (String include : graphSelection.getInclude()) {
+        for (String include : graphSelection.getIncludes()) {
             includePatterns.add(Pattern.compile(wildcardToRegex(include)));
         }
 
         // Convert exclude patterns to regex
-        for (String exclude : graphSelection.getExclude()) {
+        for (String exclude : graphSelection.getExcludes()) {
             excludePatterns.add(Pattern.compile(wildcardToRegex(exclude)));
         }
 

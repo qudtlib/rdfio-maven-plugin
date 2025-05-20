@@ -2,7 +2,8 @@ package io.github.qudtlib.maven.rdfio.filter;
 
 import java.io.File;
 import java.io.IOException;
-import org.apache.commons.io.FileUtils;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import org.apache.maven.plugin.MojoExecutionException;
 
 public class SparqlQueryFileFilter extends SparqlQueryFilter {
@@ -19,7 +20,7 @@ public class SparqlQueryFileFilter extends SparqlQueryFilter {
     protected String getSparqlSelectString() throws MojoExecutionException {
         File sparqlSelectFile = new File(this.basedir, this.filename);
         try {
-            return FileUtils.readFileToString(sparqlSelectFile);
+            return Files.readString(sparqlSelectFile.toPath(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new MojoExecutionException(
                     String.format(

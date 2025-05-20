@@ -1,7 +1,11 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.tools.ant.DirectoryScanner;
 
 public class FileHelper {
@@ -30,5 +34,29 @@ public class FileHelper {
         scanner.setExcludes(excludes);
         scanner.scan();
         return scanner.getIncludedFiles();
+    }
+
+    public static String relativizeAsUnixStyle(File baseDir, File nestedFile) {
+        return baseDir.toPath()
+                .relativize(nestedFile.toPath())
+                .toFile()
+                .toString()
+                .replace("\\", "/");
+    }
+
+    public static File resolveRelativeUnixPath(File baseDir, String unixStylePath) {
+        try {
+            return baseDir.toPath().resolve(Path.of(unixStylePath)).toFile().getCanonicalFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Resource getFileUrl(File file) {
+        try {
+            return ResourceFactory.createResource(file.getCanonicalFile().toURI().toString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -13,12 +13,12 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Parameter;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class WriteStep implements Step {
-    @Parameter private String graph;
+    private String graph;
 
-    @Parameter private String toFile;
+    private String toFile;
 
     public String getGraph() {
         return graph;
@@ -89,5 +89,42 @@ public class WriteStep implements Step {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
+    }
+
+    // WriteStep.java
+    public static WriteStep parse(Xpp3Dom config) throws MojoExecutionException {
+        if (config == null) {
+            throw new MojoExecutionException(
+                    """
+                            Write step configuration is missing.
+                            Usage: Provide a <write> element with a <graph> and optional <toFile>.
+                            Example:
+                            <write>
+                                <graph>test:graph</graph>
+                                <toFile>output.ttl</toFile>
+                            </write>""");
+        }
+
+        WriteStep step = new WriteStep();
+        Xpp3Dom graphDom = config.getChild("graph");
+        if (graphDom == null
+                || graphDom.getValue() == null
+                || graphDom.getValue().trim().isEmpty()) {
+            throw new MojoExecutionException(
+                    """
+                            Write step requires a non-empty <graph>.
+                            Usage: Specify the graph to write.
+                            Example: <graph>test:graph</graph>""");
+        }
+        step.setGraph(graphDom.getValue().trim());
+
+        Xpp3Dom toFileDom = config.getChild("toFile");
+        if (toFileDom != null
+                && toFileDom.getValue() != null
+                && !toFileDom.getValue().trim().isEmpty()) {
+            step.setToFile(toFileDom.getValue().trim());
+        }
+
+        return step;
     }
 }

@@ -2,7 +2,8 @@ package io.github.qudtlib.maven.rdfio.filter;
 
 import java.io.File;
 import java.io.IOException;
-import org.apache.commons.io.FileUtils;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import org.apache.maven.plugin.MojoExecutionException;
 
 public class SparqlUpdateFileFilter extends SparqlUpdateFilter {
@@ -19,7 +20,7 @@ public class SparqlUpdateFileFilter extends SparqlUpdateFilter {
     protected String getSparqlUpdateString() throws MojoExecutionException {
         File sparqlUpdateFile = new File(this.basedir, this.filename);
         try {
-            return FileUtils.readFileToString(sparqlUpdateFile);
+            return Files.readString(sparqlUpdateFile.toPath(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new MojoExecutionException(
                     String.format("Cannot read SPARQL update from file %s: ", sparqlUpdateFile), e);

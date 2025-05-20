@@ -19,14 +19,18 @@ public class RdfFileProcessor {
             List<String> files, FileSelection fileSelection, File baseDir) {
         List<File> resolved = new ArrayList<>();
         if (files != null) {
-            files.forEach(f -> resolved.add(baseDir.toPath().resolve(f).toFile()));
+            files.forEach(f -> resolved.add(resolveFile(baseDir, f)));
         }
         if (fileSelection != null) {
             Arrays.stream(FileHelper.getFilesForFileSelection(fileSelection, baseDir))
-                    .map(f -> baseDir.toPath().resolve(f).toFile())
+                    .map(f -> resolveFile(baseDir, f))
                     .forEach(resolved::add);
         }
         return resolved;
+    }
+
+    public static File resolveFile(File baseDir, String filePath) {
+        return baseDir.toPath().resolve(filePath).toFile();
     }
 
     public static void loadRdfFiles(List<File> files, Model model) throws MojoExecutionException {

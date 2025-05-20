@@ -12,20 +12,19 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Parameter;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.topbraid.shacl.rules.RuleUtil;
 
 public class ShaclInferStep implements Step {
-    @Parameter private String message;
+    private String message;
 
-    @Parameter private Shapes shapes;
+    private Shapes shapes;
 
-    @Parameter private Data data;
+    private Data data;
 
-    @Parameter private Inferred inferred;
+    private Inferred inferred;
 
-    @Parameter(defaultValue = "false")
-    private boolean repeatUntilStable;
+    private boolean repeatUntilStable = false;
 
     public String getMessage() {
         return message;
@@ -73,28 +72,32 @@ public class ShaclInferStep implements Step {
         if (shapes != null) {
             RdfFileProcessor.loadRdfFiles(
                     RdfFileProcessor.resolveFiles(
-                            shapes.getFile(), shapes.getFiles(), state.getBaseDir()),
+                            shapes.getFiles(), shapes.getFileSelection(), state.getBaseDir()),
                     shapesModel);
-            if (shapes.getGraph() != null) {
-                shapes.getGraph().forEach(g -> shapesModel.add(dataset.getNamedModel(g)));
+            if (shapes.getGraphs() != null) {
+                shapes.getGraphs().forEach(g -> shapesModel.add(dataset.getNamedModel(g)));
             }
+            PipelineHelper.getGraphs(dataset, shapes.getGraphSelection())
+                    .forEach(g -> shapesModel.add(dataset.getNamedModel(g)));
         }
         Model dataModel = ModelFactory.createDefaultModel();
         if (data != null) {
             RdfFileProcessor.loadRdfFiles(
                     RdfFileProcessor.resolveFiles(
-                            data.getFile(), data.getFiles(), state.getBaseDir()),
+                            data.getFiles(), data.getFileSelection(), state.getBaseDir()),
                     dataModel);
-            if (data.getGraph() != null) {
-                data.getGraph().forEach(g -> dataModel.add(dataset.getNamedModel(g)));
+            if (data.getGraphs() != null) {
+                data.getGraphs().forEach(g -> dataModel.add(dataset.getNamedModel(g)));
             }
+            PipelineHelper.getGraphs(dataset, data.getGraphSelection())
+                    .forEach(g -> dataModel.add(dataset.getNamedModel(g)));
         }
         if (inferred == null || inferred.getGraph() == null) {
             throw new MojoExecutionException("Inferred graph is required in shaclInfer step");
         }
         Model inferredModel;
         do {
-            inferredModel = (Model) RuleUtil.executeRules(dataModel, shapesModel, null, null);
+            inferredModel = RuleUtil.executeRules(dataModel, shapesModel, null, null);
             dataModel.add(inferredModel);
         } while (repeatUntilStable && !inferredModel.isEmpty());
         dataset.addNamedModel(inferred.getGraph(), inferredModel);
@@ -120,36 +123,37 @@ public class ShaclInferStep implements Step {
             if (shapes != null) {
                 RdfFileProcessor.updateHashWithFiles(
                         RdfFileProcessor.resolveFiles(
-                                shapes.getFile(), shapes.getFiles(), state.getBaseDir()),
+                                shapes.getFiles(), shapes.getFileSelection(), state.getBaseDir()),
                         digest);
-                if (shapes.getFiles() != null) {
-                    shapes.getFiles()
+                if (shapes.getFileSelection() != null) {
+                    shapes.getFileSelection()
                             .getInclude()
                             .forEach(i -> digest.update(i.getBytes(StandardCharsets.UTF_8)));
-                    shapes.getFiles()
+                    shapes.getFileSelection()
                             .getExclude()
                             .forEach(e -> digest.update(e.getBytes(StandardCharsets.UTF_8)));
                 }
-                if (shapes.getGraph() != null) {
-                    shapes.getGraph()
+                if (shapes.getGraphs() != null) {
+                    shapes.getGraphs()
                             .forEach(g -> digest.update(g.getBytes(StandardCharsets.UTF_8)));
                 }
             }
             if (data != null) {
                 RdfFileProcessor.updateHashWithFiles(
                         RdfFileProcessor.resolveFiles(
-                                data.getFile(), data.getFiles(), state.getBaseDir()),
+                                data.getFiles(), data.getFileSelection(), state.getBaseDir()),
                         digest);
-                if (data.getFiles() != null) {
-                    data.getFiles()
+                if (data.getFileSelection() != null) {
+                    data.getFileSelection()
                             .getInclude()
                             .forEach(i -> digest.update(i.getBytes(StandardCharsets.UTF_8)));
-                    data.getFiles()
+                    data.getFileSelection()
                             .getExclude()
                             .forEach(e -> digest.update(e.getBytes(StandardCharsets.UTF_8)));
                 }
-                if (data.getGraph() != null) {
-                    data.getGraph().forEach(g -> digest.update(g.getBytes(StandardCharsets.UTF_8)));
+                if (data.getGraphs() != null) {
+                    data.getGraphs()
+                            .forEach(g -> digest.update(g.getBytes(StandardCharsets.UTF_8)));
                 }
             }
             if (inferred != null) {
@@ -170,5 +174,49 @@ public class ShaclInferStep implements Step {
         } catch (NoSuchAlgorithmException | IOException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
+    }
+
+    // ShaclInferStep.java
+    public static ShaclInferStep parse(Xpp3Dom config) throws MojoExecutionException {
+        if (config == null) {
+            throw new MojoExecutionException(
+                    """
+                            ShaclInfer step configuration is missing.
+                            Usage: Provide a <shaclInfer> element with <shapes>, <data>, and <inferred>.
+                            Example:
+                            <shaclInfer>
+                                <shapes><file>shapes.ttl</file></shapes>
+                                <data><file>data.ttl</file></data>
+                                <inferred><graph>inferred:graph</graph></inferred>
+                            </shaclInfer>""");
+        }
+
+        ShaclInferStep step = new ShaclInferStep();
+        String message = ParsingHelper.getNonBlankChildString(config, "message");
+        step.setMessage(message);
+        Xpp3Dom shapesDom = config.getChild("shapes");
+        if (shapesDom == null) {
+            throw new MojoExecutionException(
+                    """
+                            ShaclInfer step requires a <shapes> element.
+                            Usage: Specify SHACL shapes via <file> or <graph>.
+                            Example: <shapes><file>shapes.ttl</file></shapes>""");
+        }
+        step.setShapes(Shapes.parse(shapesDom));
+
+        Xpp3Dom dataDom = config.getChild("data");
+        step.setData(dataDom != null ? Data.parse(dataDom) : new Data());
+
+        Xpp3Dom inferredDom = config.getChild("inferred");
+        if (inferredDom == null) {
+            throw new MojoExecutionException(
+                    """
+                            ShaclInfer step requires an <inferred> element.
+                            Usage: Specify the target graph for inferred triples.
+                            Example: <inferred><graph>inferred:graph</graph></inferred>""");
+        }
+        step.setInferred(Inferred.parse(inferredDom));
+
+        return step;
     }
 }

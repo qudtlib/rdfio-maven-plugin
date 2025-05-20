@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
 import java.io.*;
 import java.lang.reflect.Field;
@@ -13,11 +14,11 @@ import java.util.List;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ public class PipelineStepsTests {
         baseDir.mkdirs();
         workBaseDir.mkdirs();
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, RDFIO.metadataGraphString, baseDir, workBaseDir);
+        state = new PipelineState(pipelineId, RDFIO.metadataGraph.toString(), baseDir, workBaseDir);
         testOutputBase = new File(workBaseDir, "test-output");
         testOutputBase.mkdirs();
     }
@@ -47,10 +48,10 @@ public class PipelineStepsTests {
     void testAddStepWithFile() throws MojoExecutionException, IOException {
         AddStep step = new AddStep();
         String fileArg = "target/test-output/input.ttl";
-        step.setFile(fileArg);
+        step.addFile(fileArg);
         step.setToGraph("test:graph");
         String ttl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
-        File inputFile = baseDir.toPath().resolve(Path.of(fileArg)).toFile();
+        File inputFile = FileHelper.resolveRelativeUnixPath(baseDir, fileArg);
         inputFile.getParentFile().mkdirs();
         Files.write(inputFile.toPath(), ttl.getBytes());
 
@@ -64,17 +65,17 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/o")));
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         System.out.println(PipelineHelper.datasetToPrettyTrig(dataset));
+        Resource fileRes =
+                FileHelper.getFileUrl(FileHelper.resolveRelativeUnixPath(baseDir, fileArg));
         assertTrue(
                 metaModel.contains(
-                        ResourceFactory.createResource("file://./target/test-output/input.ttl"),
-                        RDFIO.loadsInto,
-                        ResourceFactory.createResource("test:graph")));
+                        fileRes, RDFIO.loadsInto, ResourceFactory.createResource("test:graph")));
     }
 
     @Test
     void testAddStepWithNonExistentFile() {
         AddStep step = new AddStep();
-        step.setFile("test-data/nonexistent.ttl");
+        step.addFile("target/rdfio/test-data/nonexistent.ttl");
         step.setToGraph("test:graph");
 
         assertThrows(
@@ -86,7 +87,7 @@ public class PipelineStepsTests {
     @Test
     void testAddStepWithMissingToGraph() {
         AddStep step = new AddStep();
-        step.setFile("test-data/input.ttl");
+        step.addFile("src/test/resources/data.ttl");
 
         assertThrows(
                 MojoExecutionException.class,
@@ -99,7 +100,7 @@ public class PipelineStepsTests {
         AddStep step = new AddStep();
         FileSelection files = new FileSelection();
         files.setInclude("src/test/resources/dontfind/*.ttl");
-        step.setFiles(files);
+        step.setFileSelection(files);
         step.setToGraph("test:graph");
 
         step.execute(dataset, state);
@@ -116,7 +117,7 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("http://example.org/o"));
 
         AddStep step = new AddStep();
-        step.setGraph("source:graph");
+        step.addGraph("source:graph");
         step.setToGraph("target:graph");
 
         step.execute(dataset, state);
@@ -130,35 +131,34 @@ public class PipelineStepsTests {
     }
 
     @Test
-    void testAddStepWithNonExistentGraph() throws MojoExecutionException {
+    void testAddStepWithNonExistentGraph() {
         AddStep step = new AddStep();
-        step.setGraph("nonexistent:graph");
+        step.addGraph("nonexistent:graph");
         step.setToGraph("target:graph");
 
-        step.execute(dataset, state);
-        Model targetModel = dataset.getNamedModel("target:graph");
-        assertTrue(
-                targetModel.isEmpty(),
-                "Target model should be empty with non-existent source graph");
+        assertThrows(MojoExecutionException.class, () -> step.execute(dataset, state));
     }
 
     @Test
     void testShaclInferStep() throws MojoExecutionException, IOException {
         Shapes shapes = new Shapes();
-        shapes.setFile("test-data/shapes.ttl");
+        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
         Data data = new Data();
-        data.setFile("test-data/data.ttl");
+        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
 
         String shapesTtl =
-                "@prefix sh: <http://www.w3.org/ns/shacl#> .\n"
-                        + "@prefix ex: <http://example.org/> .\n"
-                        + "ex:InferRule a sh:NodeShape ; sh:targetNode ex:s ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .";
+                """
+                        @prefix sh: <http://www.w3.org/ns/shacl#> .
+                        @prefix ex: <http://example.org/> .
+                        ex:InferRule a sh:NodeShape ; sh:targetNode ex:s ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .""";
         String dataTtl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
 
-        File shapesFile = new File(baseDir, "test-data/shapes.ttl");
-        File dataFile = new File(baseDir, "test-data/data.ttl");
+        File shapesFile =
+                new File(baseDir, makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
+        File dataFile =
+                new File(baseDir, makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         shapesFile.getParentFile().mkdirs();
         Files.write(shapesFile.toPath(), shapesTtl.getBytes());
         Files.write(dataFile.toPath(), dataTtl.getBytes());
@@ -178,13 +178,17 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/NewObject")));
     }
 
+    private String makeFileParameterUnderTestOutputDir(String relativePath) {
+        return testOutputBase.getPath().replace('\\', '/') + relativePath;
+    }
+
     @Test
     void testShaclInferStepMissingInferredGraph() {
         ShaclInferStep step = new ShaclInferStep();
         Shapes shapes = new Shapes();
-        shapes.setFile("test-data/shapes.ttl");
+        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
         Data data = new Data();
-        data.setFile("test-data/data.ttl");
+        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         Inferred inferred = new Inferred();
         step.setShapes(shapes);
         step.setData(data);
@@ -200,9 +204,9 @@ public class PipelineStepsTests {
     void testShaclInferStepNonExistentShapesFile() {
         ShaclInferStep step = new ShaclInferStep();
         Shapes shapes = new Shapes();
-        shapes.setFile("test-data/nonexistent.ttl");
+        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/nonexistent.ttl"));
         Data data = new Data();
-        data.setFile("test-data/data.ttl");
+        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
         step.setShapes(shapes);
@@ -218,16 +222,18 @@ public class PipelineStepsTests {
     @Test
     void testShaclInferStepEmptyData() throws MojoExecutionException, IOException {
         Shapes shapes = new Shapes();
-        shapes.setFile("test-data/shapes.ttl");
+        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
         Data data = new Data();
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
 
         String shapesTtl =
-                "@prefix sh: <http://www.w3.org/ns/shacl#> .\n"
-                        + "@prefix ex: <http://example.org/> .\n"
-                        + "ex:InferRule a sh:NodeShape ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .";
-        File shapesFile = new File(baseDir, "test-data/shapes.ttl");
+                """
+                        @prefix sh: <http://www.w3.org/ns/shacl#> .
+                        @prefix ex: <http://example.org/> .
+                        ex:InferRule a sh:NodeShape ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .""";
+        File shapesFile =
+                new File(baseDir, makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
         shapesFile.getParentFile().mkdirs();
         Files.write(shapesFile.toPath(), shapesTtl.getBytes());
 
@@ -352,7 +358,7 @@ public class PipelineStepsTests {
     }
 
     @Test
-    void testWriteStepMultipleFileMappings() throws MojoExecutionException {
+    void testWriteStepMultipleFileMappings() {
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         metaModel.add(
                 ResourceFactory.createResource("file://test-data/file1.ttl"),
@@ -505,7 +511,7 @@ public class PipelineStepsTests {
         dataset.addNamedModel("vocab:test2", model2);
 
         GraphSelection graphs = new GraphSelection();
-        graphs.setInclude("vocab:*");
+        graphs.addInclude("vocab:*");
         Values values = new Values();
         values.setGraphs(graphs);
         SparqlUpdateStep bodyStep = new SparqlUpdateStep();
@@ -538,7 +544,7 @@ public class PipelineStepsTests {
     void testForeachStepMissingVar() {
         ForeachStep step = new ForeachStep();
         GraphSelection graphs = new GraphSelection();
-        graphs.setInclude("vocab:*");
+        graphs.addInclude("vocab:*");
         Values values = new Values();
         values.setGraphs(graphs);
         SparqlUpdateStep bodyStep = new SparqlUpdateStep();
@@ -573,7 +579,7 @@ public class PipelineStepsTests {
         ForeachStep step = new ForeachStep();
         step.setVar("fileGraph");
         GraphSelection graphs = new GraphSelection();
-        graphs.setInclude("vocab:*");
+        graphs.addInclude("vocab:*");
         Values values = new Values();
         values.setGraphs(graphs);
         step.setValues(values);
@@ -587,7 +593,7 @@ public class PipelineStepsTests {
     @Test
     void testForeachStepEmptyGraphs() throws MojoExecutionException {
         GraphSelection graphs = new GraphSelection();
-        graphs.setInclude("nonexistent:*");
+        graphs.addInclude("nonexistent:*");
         Values values = new Values();
         values.setGraphs(graphs);
         SparqlUpdateStep bodyStep = new SparqlUpdateStep();
@@ -622,8 +628,8 @@ public class PipelineStepsTests {
         // Invalid step types are handled by Plexus; simulate by adding an unknown step
         PipelineMojo mojo = new PipelineMojo();
         Pipeline pipeline = new Pipeline();
-        pipeline.setPipelineId("test-pipeline");
-        pipeline.setMetadataGraph(RDFIO.metadataGraphString);
+        pipeline.setId("test-pipeline");
+        pipeline.setMetadataGraph(RDFIO.metadataGraph.toString());
         pipeline.setBaseDir(baseDir);
         List<Step> steps = new ArrayList<>();
         steps.add(new UnknownStep()); // Custom step to simulate invalid type
@@ -640,8 +646,15 @@ public class PipelineStepsTests {
     @Test
     void testPipelineMojoWithSavepoints() throws Exception {
         PipelineMojo mojo = new PipelineMojo();
-        Pipeline pipeline = loadPipelineConfig("src/test/resources/pipeline-config.xml");
-        setField(mojo, "pipeline", pipeline);
+        setField(
+                mojo,
+                "configuration",
+                Xpp3DomBuilder.build(
+                        Files.newInputStream(Path.of("src/test/resources/pipeline-config.xml")),
+                        "UTF-8"));
+        setField(mojo, "baseDir", baseDir);
+        mojo.parseConfiguration();
+        Pipeline pipeline = mojo.getPipeline();
         pipeline.setForceRun(true);
         mojo.execute();
         pipeline.setForceRun(false);
@@ -774,8 +787,7 @@ public class PipelineStepsTests {
     }
 
     @Test
-    void testSavepointValidationFailsOnInputFileChange()
-            throws MojoExecutionException, IOException, Exception {
+    void testSavepointValidationFailsOnInputFileChange() throws Exception {
         // Create input file
         File inputFile = new File("target/rdfio/test-output/test-input.ttl");
         inputFile.getParentFile().mkdirs();
@@ -785,12 +797,12 @@ public class PipelineStepsTests {
 
         // Configure pipeline
         Pipeline pipeline = new Pipeline();
-        pipeline.setPipelineId("test-pipeline");
-        pipeline.setMetadataGraph(RDFIO.metadataGraphString);
+        pipeline.setId("test-pipeline");
+        pipeline.setMetadataGraph(RDFIO.metadataGraph.toString());
         pipeline.setBaseDir(baseDir);
         List<Step> steps = new ArrayList<>();
         AddStep addStep = new AddStep();
-        addStep.setFile("target/rdfio/test-output/test-input.ttl");
+        addStep.addFile("target/rdfio/test-output/test-input.ttl");
         addStep.setToGraph("test:graph");
         SavepointStep savepointStep = new SavepointStep();
         savepointStep.setId("sp001");
@@ -837,94 +849,6 @@ public class PipelineStepsTests {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
-    }
-
-    private Pipeline loadPipelineConfig(String filePath) throws MojoExecutionException {
-        File configFile = new File(filePath);
-        if (!configFile.exists()) {
-            throw new MojoExecutionException("Pipeline configuration file not found: " + filePath);
-        }
-        try (FileInputStream fis = new FileInputStream(configFile)) {
-            Xpp3Dom config = Xpp3DomBuilder.build(fis, StandardCharsets.UTF_8.name());
-            Pipeline pipeline = new Pipeline();
-            Xpp3Dom pipelineIdDom = config.getChild("pipelineId");
-            if (pipelineIdDom != null
-                    && pipelineIdDom.getValue() != null
-                    && !pipelineIdDom.getValue().trim().isEmpty()) {
-                pipeline.setPipelineId(pipelineIdDom.getValue());
-            } else {
-                throw new MojoExecutionException("Pipeline ID is required in configuration");
-            }
-            Xpp3Dom metadataGraphDom = config.getChild("metadataGraph");
-            if (metadataGraphDom != null && metadataGraphDom.getValue() != null) {
-                pipeline.setMetadataGraph(metadataGraphDom.getValue());
-            } else {
-                pipeline.setMetadataGraph(RDFIO.metadataGraphString);
-            }
-            Xpp3Dom forceRunDom = config.getChild("forceRun");
-            if (forceRunDom != null && forceRunDom.getValue() != null) {
-                pipeline.setForceRun(Boolean.parseBoolean(forceRunDom.getValue()));
-            } else {
-                pipeline.setForceRun(false);
-            }
-            Xpp3Dom baseDirDom = config.getChild("baseDir");
-            if (baseDirDom != null && baseDirDom.getValue() != null) {
-                pipeline.setBaseDir(new File(baseDirDom.getValue()));
-            } else {
-                pipeline.setBaseDir(new File(System.getProperty("user.dir")));
-            }
-            List<Step> steps = new ArrayList<>();
-            Xpp3Dom stepsDom = config.getChild("steps");
-            if (stepsDom != null) {
-                for (Xpp3Dom stepDom : stepsDom.getChildren()) {
-                    String stepType = stepDom.getName();
-                    switch (stepType) {
-                        case "add":
-                            AddStep addStep = new AddStep();
-                            Xpp3Dom fileDom = stepDom.getChild("file");
-                            if (fileDom != null && fileDom.getValue() != null) {
-                                addStep.setFile(fileDom.getValue());
-                            }
-                            Xpp3Dom toGraphDom = stepDom.getChild("toGraph");
-                            if (toGraphDom != null && toGraphDom.getValue() != null) {
-                                addStep.setToGraph(toGraphDom.getValue());
-                            }
-                            steps.add(addStep);
-                            break;
-                        case "sparqlUpdate":
-                            SparqlUpdateStep sparqlStep = new SparqlUpdateStep();
-                            Xpp3Dom sparqlDom = stepDom.getChild("sparql");
-                            if (sparqlDom != null && sparqlDom.getValue() != null) {
-                                sparqlStep.setSparql(sparqlDom.getValue());
-                            }
-                            steps.add(sparqlStep);
-                            break;
-                        case "savepoint":
-                            SavepointStep savepointStep = new SavepointStep();
-                            Xpp3Dom idDom = stepDom.getChild("id");
-                            if (idDom != null && idDom.getValue() != null) {
-                                savepointStep.setId(idDom.getValue());
-                            }
-                            Xpp3Dom enabledDom = stepDom.getChild("enabled");
-                            if (enabledDom != null && enabledDom.getValue() != null) {
-                                savepointStep.setEnabled(
-                                        Boolean.parseBoolean(enabledDom.getValue()));
-                            } else {
-                                savepointStep.setEnabled(true);
-                            }
-                            steps.add(savepointStep);
-                            break;
-                        default:
-                            throw new MojoExecutionException("Unknown step type: " + stepType);
-                    }
-                }
-            }
-            pipeline.setSteps(steps);
-            return pipeline;
-        } catch (Exception e) {
-            throw new MojoExecutionException(
-                    "Failed to load pipeline configuration from " + filePath, e);
-        }
     }
 
     // Dummy class to simulate an invalid step

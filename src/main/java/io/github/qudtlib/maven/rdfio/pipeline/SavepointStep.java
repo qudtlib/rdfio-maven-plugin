@@ -5,13 +5,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import org.apache.jena.query.Dataset;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Parameter;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class SavepointStep implements Step {
-    @Parameter private String id;
+    private String id;
 
-    @Parameter(defaultValue = "true")
-    private boolean enabled;
+    private boolean enabled = true;
 
     public String getId() {
         return id;
@@ -29,8 +28,7 @@ public class SavepointStep implements Step {
         this.enabled = enabled;
     }
 
-    public boolean isValid(Dataset dataset, PipelineState state, String currentHash)
-            throws MojoExecutionException {
+    public boolean isValid(PipelineState state, String currentHash) throws MojoExecutionException {
         if (!enabled) {
             return false;
         }
@@ -81,5 +79,39 @@ public class SavepointStep implements Step {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
+    }
+
+    // SavepointStep.java
+    public static SavepointStep parse(Xpp3Dom config) throws MojoExecutionException {
+        if (config == null) {
+            throw new MojoExecutionException(
+                    """
+                            Savepoint step configuration is missing.
+                            Usage: Provide a <savepoint> element with a required <id> and optional <enabled>.
+                            Example:
+                            <savepoint>
+                                <id>sp001</id>
+                                <enabled>true</enabled>
+                            </savepoint>""");
+        }
+
+        SavepointStep step = new SavepointStep();
+        Xpp3Dom idDom = config.getChild("id");
+        if (idDom == null || idDom.getValue() == null || idDom.getValue().trim().isEmpty()) {
+            throw new MojoExecutionException(
+                    """
+                            Savepoint step requires a non-empty <id>.
+                            Usage: Specify a unique identifier for the savepoint.
+                            Example: <id>sp001</id>""");
+        }
+        step.setId(idDom.getValue().trim());
+
+        Xpp3Dom enabledDom = config.getChild("enabled");
+        step.setEnabled(
+                enabledDom == null
+                        || enabledDom.getValue() == null
+                        || Boolean.parseBoolean(enabledDom.getValue().trim()));
+
+        return step;
     }
 }
