@@ -2,7 +2,7 @@ package io.github.qudtlib.maven.rdfio.common.sparql;
 
 import static io.github.qudtlib.maven.rdfio.filter.GraphsHelper.getAllModels;
 
-import io.github.qudtlib.maven.rdfio.pipeline.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.sparql.ShaclSparqlFunctionRegistrar;
 import java.util.Collection;
 import java.util.Map;
@@ -60,7 +60,7 @@ public class SparqlHelper {
      * @param metadataGraph The URI of the metadata graph (e.g., http://qudtlib.org/rdfio/metadata).
      * @return A QuerySolutionMap with variable bindings.
      */
-    private static QuerySolutionMap extractVariableBindings(Dataset dataset, String metadataGraph) {
+    public static QuerySolutionMap extractVariableBindings(Dataset dataset, String metadataGraph) {
         QuerySolutionMap bindings = new QuerySolutionMap();
         Model metaModel = dataset.getNamedModel(metadataGraph);
         for (Statement stmt :

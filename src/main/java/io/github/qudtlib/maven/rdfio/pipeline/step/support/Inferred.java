@@ -1,5 +1,6 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class Inferred {

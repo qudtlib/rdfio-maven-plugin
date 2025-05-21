@@ -1,4 +1,4 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.common;
 
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;

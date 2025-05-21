@@ -2,6 +2,10 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.pipeline.step.AddStep;
+import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;

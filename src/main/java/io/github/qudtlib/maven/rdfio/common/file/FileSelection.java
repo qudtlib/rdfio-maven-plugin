@@ -1,12 +1,13 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
-import io.github.qudtlib.maven.rdfio.pipeline.ConfigurationParseException;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class FileSelection {
+
     /**
      * Comma-separated or newline-separated list of ant-style patterns, such as <code>
      * target/txt/**\/*.txt,target/pdf/**\/*.pdf</code>
@@ -18,6 +19,13 @@ public class FileSelection {
      * target/txt/**\/*.txt,target/pdf/**\/*.pdf</code>
      */
     protected List<String> exclude = new ArrayList<>();
+
+    public FileSelection() {}
+
+    public FileSelection(List<String> include, List<String> exclude) {
+        this.include = include;
+        this.exclude = exclude;
+    }
 
     @Parameter
     public void setInclude(String include) {
@@ -80,5 +88,9 @@ public class FileSelection {
         }
 
         return selection;
+    }
+
+    public boolean isEmpty() {
+        return this.include.isEmpty() && this.exclude.isEmpty();
     }
 }

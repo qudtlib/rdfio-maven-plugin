@@ -1,6 +1,6 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
-import io.github.qudtlib.maven.rdfio.pipeline.PipelineConfigurationExeception;
+import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

@@ -1,5 +1,7 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
+import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;

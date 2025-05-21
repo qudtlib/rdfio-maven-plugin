@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.pipeline.step.ShaclInferStep;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;

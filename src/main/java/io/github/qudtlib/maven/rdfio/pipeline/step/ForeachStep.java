@@ -1,5 +1,10 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.pipeline.*;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.Values;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -82,10 +87,10 @@ public class ForeachStep implements Step {
             }
             if (values != null && values.getGraphs() != null) {
                 values.getGraphs()
-                        .getIncludes()
+                        .getInclude()
                         .forEach(i -> digest.update(i.getBytes(StandardCharsets.UTF_8)));
                 values.getGraphs()
-                        .getExcludes()
+                        .getExclude()
                         .forEach(e -> digest.update(e.getBytes(StandardCharsets.UTF_8)));
             }
             String subPreviousHash = "";

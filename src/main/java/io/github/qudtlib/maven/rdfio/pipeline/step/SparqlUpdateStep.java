@@ -1,12 +1,14 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import com.google.common.base.Charsets;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
-import java.io.File;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -45,12 +47,13 @@ public class SparqlUpdateStep implements Step {
         try {
             String sparqlString = this.sparql;
             if (sparqlString == null && this.file != null) {
-                File sparqlFile = FileHelper.resolveRelativeUnixPath(state.getBaseDir(), this.file);
-                sparqlString = Files.readString(sparqlFile.toPath(), Charsets.UTF_8);
+                RelativePath sparqlFile =
+                        state.files().make(state.variables().resolve(this.file, dataset));
+                sparqlString = state.files().readText(sparqlFile);
                 if (sparqlString == null || sparqlString.isBlank()) {
                     throw new MojoExecutionException(
                             "No SPARQL found in specified file %s"
-                                    .formatted(sparqlFile.getAbsolutePath()));
+                                    .formatted(sparqlFile.getRelativePath()));
                 }
             }
             if (sparqlString == null) {

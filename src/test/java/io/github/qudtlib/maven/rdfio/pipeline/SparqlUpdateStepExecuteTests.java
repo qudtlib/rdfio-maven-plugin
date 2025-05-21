@@ -2,8 +2,10 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.step.SparqlUpdateStep;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -19,7 +21,7 @@ import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class SparqlUpdateExecuteTests {
+public class SparqlUpdateStepExecuteTests {
     private Dataset dataset;
     private PipelineState state;
     private File baseDir;

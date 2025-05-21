@@ -2,7 +2,10 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.pipeline.step.AddStep;
+import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import java.io.File;
 import java.nio.file.Files;
 import org.apache.jena.query.Dataset;
@@ -76,8 +79,7 @@ public class AddStepExecuteTests {
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         assertTrue(
                 metaModel.contains(
-                        FileHelper.getFileUrl(
-                                FileHelper.resolveRelativeUnixPath(baseDir, TEST_RDF_FILE)),
+                        new RelativePath(baseDir, TEST_RDF_FILE).getRelativePathAsResource(),
                         RDFIO.loadsInto,
                         ResourceFactory.createResource("test:graph")),
                 "Metadata should map the file to the target graph");
@@ -125,11 +127,11 @@ public class AddStepExecuteTests {
     @Test
     void testExecuteMultipleFilesToTargetGraph() throws Exception {
         // Arrange: Create a second test file
-        File secondRdfFile = new File(baseDir, "src/test/resources/data2.ttl");
-        Files.createDirectories(secondRdfFile.getParentFile().toPath());
+        RelativePath secondRdfFile = new RelativePath(baseDir, "src/test/resources/data2.ttl");
+        Files.createDirectories(secondRdfFile.resolve().getParentFile().toPath());
         String secondContent =
                 "<http://example.org/s2> <http://example.org/p2> <http://example.org/o2> .";
-        Files.write(secondRdfFile.toPath(), secondContent.getBytes());
+        Files.write(secondRdfFile.resolve().toPath(), secondContent.getBytes());
 
         String xmlConfig =
                 """
@@ -165,14 +167,13 @@ public class AddStepExecuteTests {
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         assertTrue(
                 metaModel.contains(
-                        FileHelper.getFileUrl(
-                                FileHelper.resolveRelativeUnixPath(baseDir, TEST_RDF_FILE)),
+                        new RelativePath(baseDir, TEST_RDF_FILE).getRelativePathAsResource(),
                         RDFIO.loadsInto,
                         ResourceFactory.createResource("test:graph")),
                 "Metadata should map the first file to the target graph");
         assertTrue(
                 metaModel.contains(
-                        FileHelper.getFileUrl(secondRdfFile),
+                        secondRdfFile.getRelativePathAsResource(),
                         RDFIO.loadsInto,
                         ResourceFactory.createResource("test:graph")),
                 "Metadata should map the second file to the target graph");
@@ -313,8 +314,7 @@ public class AddStepExecuteTests {
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         assertTrue(
                 metaModel.contains(
-                        FileHelper.getFileUrl(
-                                FileHelper.resolveRelativeUnixPath(baseDir, TEST_RDF_FILE)),
+                        new RelativePath(baseDir, TEST_RDF_FILE).getRelativePathAsResource(),
                         RDFIO.loadsInto,
                         ResourceFactory.createResource("test:graph")),
                 "Metadata should map the file to the target graph");

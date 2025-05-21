@@ -1,6 +1,6 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
-import io.github.qudtlib.maven.rdfio.pipeline.PipelineConfigurationExeception;
+import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -84,6 +84,10 @@ public class FileHelper {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void ensureRelativePathsExist(List<RelativePath> files, String kind) {
+        ensureFilesExist(files.stream().map(RelativePath::resolve).toList(), kind);
     }
 
     public static void ensureFilesExist(List<File> files, String kind) {

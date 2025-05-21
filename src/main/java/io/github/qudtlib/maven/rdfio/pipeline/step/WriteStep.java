@@ -1,7 +1,10 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.pipeline.*;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,7 +17,6 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -50,39 +52,33 @@ public class WriteStep implements Step {
         if (graphs.isEmpty()) {
             throw new MojoExecutionException("Graph is required in write step");
         }
+
         // possible cases
         // 1. no toGraph - each graph must have an associated file
         // 2. toGraph is a triples format (eg. xyz.ttl) - the union of all graphs is written to the
         // file
         // 3. tgGraph is a quads format (eg.  xyz.trig) - each graph is written to the file with the
         // graph uri as the fourth element
-        String outputFileStr = toFile;
-        if (outputFileStr == null) {
+        if (this.toFile == null) {
             writeOneFilePerGraph(dataset, state);
         } else {
-            Lang outputLang = RDFLanguages.resourceNameToLang(outputFileStr, Lang.TTL);
+            RelativePath outputPath =
+                    state.files().make(state.variables().resolve(this.toFile, dataset));
+            Lang outputLang = RDFLanguages.resourceNameToLang(outputPath.getName(), Lang.TTL);
             if (RDFLanguages.isQuads(outputLang)) {
-                createParentFolder(state, outputFileStr);
+                state.files().createParentFolder(outputPath);
                 Dataset dsToWrite = DatasetFactory.create();
-                for (String graph : graphs) {
+                for (String graph : state.variables().resolve(graphs, dataset)) {
                     dsToWrite.addNamedModel(graph, dataset.getNamedModel(graph));
                 }
-                try (FileOutputStream out = new FileOutputStream(outputFileStr)) {
-                    RDFDataMgr.write(out, dsToWrite, outputLang);
-                } catch (Exception e) {
-                    throw new MojoExecutionException("Failed to write file", e);
-                }
+                state.files().writeRdf(outputPath, dsToWrite);
             } else {
-                createParentFolder(state, outputFileStr);
+                state.files().createParentFolder(outputPath);
                 Model modelToWrite = ModelFactory.createDefaultModel();
-                for (String graph : graphs) {
+                for (String graph : state.variables().resolve(graphs, dataset)) {
                     modelToWrite.add(dataset.getNamedModel(graph));
                 }
-                try (FileOutputStream out = new FileOutputStream(outputFileStr)) {
-                    RDFDataMgr.write(out, modelToWrite, outputLang);
-                } catch (Exception e) {
-                    throw new MojoExecutionException("Failed to write file", e);
-                }
+                state.files().writeRdf(outputPath, modelToWrite);
             }
         }
 
@@ -92,14 +88,15 @@ public class WriteStep implements Step {
     private void writeOneFilePerGraph(Dataset dataset, PipelineState state)
             throws MojoExecutionException {
         String outputFileStr;
-        for (String graph : this.graphs) {
+        for (String graph : state.variables().resolve(this.graphs, dataset)) {
             Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
             StmtIterator it =
                     metaModel.listStatements(
                             null, RDFIO.loadsInto, ResourceFactory.createResource(graph));
             List<String> files = new ArrayList<>();
             while (it.hasNext()) {
-                files.add(it.next().getSubject().getURI().replace("file://", ""));
+                String graphPath = it.next().getSubject().toString();
+                files.add(graphPath);
             }
             if (files.size() == 1) {
                 outputFileStr = files.get(0);
@@ -108,22 +105,9 @@ public class WriteStep implements Step {
             } else {
                 throw new MojoExecutionException("Multiple file mappings found for graph " + graph);
             }
-            createParentFolder(state, outputFileStr);
-            try (FileOutputStream out = new FileOutputStream(outputFileStr)) {
-                RDFDataMgr.write(out, dataset.getNamedModel(graph), Lang.TTL);
-            } catch (Exception e) {
-                throw new MojoExecutionException("Failed to write file", e);
-            }
-        }
-    }
-
-    private static void createParentFolder(PipelineState state, String outputFileStr)
-            throws MojoExecutionException {
-        File outputFile = new File(outputFileStr);
-        state.requireUnderConfiguredDirs(outputFile);
-        File outputFileParent = outputFile.getParentFile();
-        if (!outputFileParent.exists()) {
-            outputFileParent.mkdirs();
+            RelativePath outputPath = state.files().make(outputFileStr);
+            state.files().createParentFolder(outputPath);
+            state.files().writeRdf(outputPath, dataset.getNamedModel(graph));
         }
     }
 

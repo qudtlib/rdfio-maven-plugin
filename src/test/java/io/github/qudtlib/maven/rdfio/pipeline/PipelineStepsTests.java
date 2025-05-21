@@ -2,9 +2,17 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.step.*;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.GraphSelection;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.Inferred;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.Values;
+import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +51,23 @@ public class PipelineStepsTests {
         state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
         testOutputBase = new File(workBaseDir, "test-output");
         testOutputBase.mkdirs();
+        createShapesAndDataFiles(state);
+    }
+
+    private static void createShapesAndDataFiles(PipelineState state) {
+        String shapesTtl =
+                """
+                        @prefix sh: <http://www.w3.org/ns/shacl#> .
+                        @prefix ex: <http://example.org/> .
+                        ex:InferRule a sh:NodeShape ; sh:targetNode ex:s ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .""";
+        String dataTtl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
+
+        RelativePath shapesFile = state.files().makeRelativeToOutputBase("test-data/shapes.ttl");
+        RelativePath dataFile = state.files().makeRelativeToOutputBase("test-data/data.ttl");
+        state.files().createParentFolder(shapesFile);
+        state.files().createParentFolder(dataFile);
+        state.files().writeText(shapesFile, shapesTtl);
+        state.files().writeText(dataFile, dataTtl);
     }
 
     @Test
@@ -65,8 +90,7 @@ public class PipelineStepsTests {
                         ResourceFactory.createProperty("http://example.org/p"),
                         ResourceFactory.createResource("http://example.org/o")));
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
-        Resource fileRes =
-                FileHelper.getFileUrl(FileHelper.resolveRelativeUnixPath(baseDir, fileArg));
+        Resource fileRes = new RelativePath(baseDir, fileArg).getRelativePathAsResource();
         assertTrue(
                 metaModel.contains(
                         fileRes, RDFIO.loadsInto, ResourceFactory.createResource("test:graph")));
@@ -147,23 +171,11 @@ public class PipelineStepsTests {
         ShaclInferStep step = new ShaclInferStep();
         InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
         InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
-        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
+        shapes.addFile(
+                makeFileParameterUnderTestOutputDir("test-data/shapes.ttl").getRelativePath());
+        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl").getRelativePath());
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
-
-        String shapesTtl =
-                """
-                        @prefix sh: <http://www.w3.org/ns/shacl#> .
-                        @prefix ex: <http://example.org/> .
-                        ex:InferRule a sh:NodeShape ; sh:targetNode ex:s ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .""";
-        String dataTtl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
-
-        File shapesFile = new File(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        File dataFile = new File(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
-        shapesFile.getParentFile().mkdirs();
-        Files.write(shapesFile.toPath(), shapesTtl.getBytes());
-        Files.write(dataFile.toPath(), dataTtl.getBytes());
 
         step.setShapes(shapes);
         step.setData(data);
@@ -179,9 +191,8 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/NewObject")));
     }
 
-    private String makeFileParameterUnderTestOutputDir(String relativePath) {
-        return testOutputBase.getPath().replace('\\', '/')
-                + (relativePath.startsWith("/") ? relativePath : "/" + relativePath);
+    private RelativePath makeFileParameterUnderTestOutputDir(String relativePath) {
+        return state.files().makeRelativeToOutputBase(relativePath);
     }
 
     @Test
@@ -189,8 +200,9 @@ public class PipelineStepsTests {
         ShaclInferStep step = new ShaclInferStep();
         InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
         InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
-        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
+        shapes.addFile(
+                makeFileParameterUnderTestOutputDir("test-data/shapes.ttl").getRelativePath());
+        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl").getRelativePath());
         Inferred inferred = new Inferred();
         step.setShapes(shapes);
         step.setData(data);
@@ -203,8 +215,12 @@ public class PipelineStepsTests {
         ShaclInferStep step = new ShaclInferStep();
         InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
         InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
-        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/nonexistent.ttl"));
-        data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
+        shapes.addFile(
+                state.files()
+                        .makeRelativeToOutputBase("test-data/nonexistent.ttl")
+                        .getRelativePath());
+        data.addFile(
+                state.files().makeRelativeToOutputBase("test-data/data.ttl").getRelativePath());
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
         step.setShapes(shapes);
@@ -222,7 +238,8 @@ public class PipelineStepsTests {
         ShaclInferStep step = new ShaclInferStep();
         InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
         InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
-        shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
+        shapes.addFile(
+                state.files().makeRelativeToOutputBase("test-data/shapes.ttl").getRelativePath());
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
 
@@ -231,10 +248,9 @@ public class PipelineStepsTests {
                         @prefix sh: <http://www.w3.org/ns/shacl#> .
                         @prefix ex: <http://example.org/> .
                         ex:InferRule a sh:NodeShape ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .""";
-        File shapesFile =
-                new File(baseDir, makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        shapesFile.getParentFile().mkdirs();
-        Files.write(shapesFile.toPath(), shapesTtl.getBytes());
+        RelativePath shapesFile = state.files().makeRelativeToOutputBase("test-data/shapes.ttl");
+        state.files().createParentFolder(shapesFile);
+        state.files().writeText(shapesFile, shapesTtl);
 
         step.setShapes(shapes);
         step.setData(data);
@@ -310,15 +326,10 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("http://example.org/s"),
                 ResourceFactory.createProperty("http://example.org/p"),
                 ResourceFactory.createResource("http://example.org/o"));
-        File outputFile = new File(testOutputBase, "output.ttl");
-        String relativePath =
-                baseDir.toPath()
-                        .relativize(outputFile.toPath())
-                        .toString()
-                        .replace(File.separator, "/");
+        RelativePath outputFile = state.files().makeRelativeToOutputBase("output.ttl");
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         metaModel.add(
-                ResourceFactory.createResource("file://" + relativePath),
+                outputFile.getRelativePathAsResource(),
                 RDFIO.loadsInto,
                 ResourceFactory.createResource("test:graph"));
 
@@ -328,7 +339,7 @@ public class PipelineStepsTests {
         step.execute(dataset, state);
 
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),

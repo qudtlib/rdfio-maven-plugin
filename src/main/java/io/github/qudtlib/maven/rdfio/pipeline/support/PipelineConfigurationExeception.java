@@ -1,4 +1,4 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.support;
 
 public class PipelineConfigurationExeception extends RuntimeException {
     public PipelineConfigurationExeception() {}

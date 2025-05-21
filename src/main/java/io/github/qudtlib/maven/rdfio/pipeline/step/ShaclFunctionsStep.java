@@ -1,11 +1,14 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import static io.github.qudtlib.maven.rdfio.pipeline.AddStep.requireSourceGraphExists;
+import static io.github.qudtlib.maven.rdfio.pipeline.step.AddStep.requireSourceGraphExists;
 
-import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
-import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
-import java.io.File;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -32,12 +35,10 @@ public class ShaclFunctionsStep implements Step {
     public void execute(Dataset dataset, PipelineState state)
             throws RuntimeException, MojoExecutionException {
         Model targetModel = dataset.getNamedModel(state.getShaclFunctionsGraph());
-        List<File> inputFiles = inputsComponent.getAllInputFiles(state);
-        if (!inputFiles.isEmpty()) {
-            for (File inputFile : inputFiles) {
-                List<File> files = List.of(inputFile);
-                FileHelper.ensureFilesExist(files, "input");
-                RdfFileProcessor.loadRdfFiles(files, targetModel);
+        List<RelativePath> inputPaths = inputsComponent.getAllInputPaths(dataset, state);
+        if (!inputPaths.isEmpty()) {
+            for (RelativePath inputPath : inputPaths) {
+                state.files().readRdf(inputPath, targetModel);
             }
         }
         List<String> inputGraphs = inputsComponent.getAllInputGraphs(dataset, state);

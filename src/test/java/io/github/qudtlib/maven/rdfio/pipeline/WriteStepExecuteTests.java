@@ -2,6 +2,11 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePathException;
+import io.github.qudtlib.maven.rdfio.pipeline.step.WriteStep;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -58,15 +63,10 @@ public class WriteStepExecuteTests {
                 ResourceFactory.createResource("http://example.org/s"),
                 ResourceFactory.createProperty("http://example.org/p"),
                 ResourceFactory.createResource("http://example.org/o"));
-        File outputFile = new File(testOutputBase, "output.ttl");
-        String relativePath =
-                baseDir.toPath()
-                        .relativize(outputFile.toPath())
-                        .toString()
-                        .replace(File.separator, "/");
+        RelativePath outputFile = state.files().makeRelativeToOutputBase("output.ttl");
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         metaModel.add(
-                ResourceFactory.createResource("file://" + relativePath),
+                outputFile.getRelativePathAsResource(),
                 RDFIO.loadsInto,
                 ResourceFactory.createResource("test:graph"));
 
@@ -74,7 +74,7 @@ public class WriteStepExecuteTests {
 
         // Verify written file
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -234,15 +234,10 @@ public class WriteStepExecuteTests {
 
         // Setup empty graph and metadata
         dataset.getNamedModel("test:graph"); // Create empty model
-        File outputFile = new File(testOutputBase, "empty-output.ttl");
-        String relativePath =
-                baseDir.toPath()
-                        .relativize(outputFile.toPath())
-                        .toString()
-                        .replace(File.separator, "/");
+        RelativePath outputFile = state.files().makeRelativeToOutputBase("empty-output.ttl");
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         metaModel.add(
-                ResourceFactory.createResource("file://" + relativePath),
+                outputFile.getRelativePathAsResource(),
                 RDFIO.loadsInto,
                 ResourceFactory.createResource("test:graph"));
 
@@ -250,7 +245,7 @@ public class WriteStepExecuteTests {
 
         // Verify written file is empty
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(writtenModel.isEmpty(), "Written model should be empty");
     }
 
@@ -308,7 +303,7 @@ public class WriteStepExecuteTests {
                 ResourceFactory.createResource("http://example.org/o"));
 
         assertThrows(
-                MojoExecutionException.class,
+                RelativePathException.class,
                 () -> step.execute(dataset, state),
                 "Should throw when writing to an invalid file path");
     }
@@ -375,15 +370,10 @@ public class WriteStepExecuteTests {
                 ResourceFactory.createResource("http://example.org/s"),
                 ResourceFactory.createProperty("http://example.org/p"),
                 ResourceFactory.createResource("http://example.org/o"));
-        File outputFile = new File(testOutputBase, "default-output.ttl");
-        String relativePath =
-                baseDir.toPath()
-                        .relativize(outputFile.toPath())
-                        .toString()
-                        .replace(File.separator, "/");
+        RelativePath outputFile = state.files().makeRelativeToOutputBase("default-output.ttl");
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         metaModel.add(
-                ResourceFactory.createResource("file://" + relativePath),
+                outputFile.getRelativePathAsResource(),
                 RDFIO.loadsInto,
                 ResourceFactory.createResource("DEFAULT"));
 
@@ -391,7 +381,7 @@ public class WriteStepExecuteTests {
 
         // Verify written file
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),

@@ -2,6 +2,10 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.pipeline.step.ShaclInferStep;
+import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +15,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.junit.jupiter.api.Test;
 
-public class ShaclInferParseTests {
+public class ShaclInferStepParseTests {
 
     @Test
     void testParseShaclInferStepMinimalValid() throws Exception {
@@ -117,11 +121,11 @@ public class ShaclInferParseTests {
                 step.getShapes().getGraphSelection(), "Shape GraphSelection should not be null");
         assertEquals(
                 1,
-                step.getShapes().getGraphSelection().getIncludes().size(),
+                step.getShapes().getGraphSelection().getInclude().size(),
                 "Should have one shape graph include");
         assertEquals(
                 "shapes:*",
-                step.getShapes().getGraphSelection().getIncludes().get(0),
+                step.getShapes().getGraphSelection().getInclude().get(0),
                 "Shape graph include should match");
         assertNotNull(step.getData(), "Data should not be null");
         assertTrue(step.getData().getFiles().isEmpty(), "Data files should be empty");

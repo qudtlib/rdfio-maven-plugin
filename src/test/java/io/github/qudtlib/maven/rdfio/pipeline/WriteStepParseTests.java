@@ -2,6 +2,8 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.pipeline.step.WriteStep;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;

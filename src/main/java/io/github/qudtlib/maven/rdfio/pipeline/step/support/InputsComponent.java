@@ -1,8 +1,11 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
 import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
-import java.io.File;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.pipeline.*;
+import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -116,14 +119,23 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
                 .formatted(owner.getElementName());
     }
 
-    public List<File> getAllInputFiles(PipelineState state) {
-        return RdfFileProcessor.resolveFiles(files, fileSelection, state.getBaseDir());
+    public List<RelativePath> getAllInputPaths(Dataset dataset, PipelineState state) {
+        List<RelativePath> result = new ArrayList<>();
+        result.addAll(state.files().make(state.variables().resolve(getFiles(), dataset)));
+        result.addAll(
+                FileAccess.resolveFileSelection(
+                        state.variables().resolve(getFileSelection(), dataset),
+                        state.getBaseDir()));
+        return result;
     }
 
     public List<String> getAllInputGraphs(Dataset dataset, PipelineState state) {
-        List<String> allGraphs = new ArrayList<>(this.graphs);
+        List<String> allGraphs = new ArrayList<>();
+        allGraphs.addAll(state.variables().resolve(this.graphs, dataset));
         PipelineHelper.ensureGraphsExist(dataset, allGraphs, "input graph");
-        allGraphs.addAll(PipelineHelper.getGraphs(dataset, graphSelection));
+        allGraphs.addAll(
+                PipelineHelper.getGraphs(
+                        dataset, state.variables().resolve(graphSelection, dataset)));
         return allGraphs;
     }
 

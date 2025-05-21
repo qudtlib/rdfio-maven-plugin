@@ -1,5 +1,6 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import org.apache.jena.query.Dataset;
 import org.apache.maven.plugin.MojoExecutionException;
 

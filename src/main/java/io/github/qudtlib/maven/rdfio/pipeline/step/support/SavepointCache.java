@@ -1,5 +1,6 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

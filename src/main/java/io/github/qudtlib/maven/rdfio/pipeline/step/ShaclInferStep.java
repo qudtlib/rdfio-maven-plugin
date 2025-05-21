@@ -1,7 +1,13 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step;
 
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.pipeline.*;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.Inferred;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -149,16 +155,17 @@ public class ShaclInferStep implements Step {
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
+        if (message != null) {
+            state.getLog().info(state.variables().resolve(message, dataset));
+        }
         try {
             Model shapesModel = ModelFactory.createDefaultModel();
             if (shapes == null) {
                 shapesModel.add(dataset.getDefaultModel());
             } else {
-                List<File> shapesFiles =
-                        RdfFileProcessor.resolveFiles(
-                                shapes.getFiles(), shapes.getFileSelection(), state.getBaseDir());
-                FileHelper.ensureFilesExist(shapesFiles, "shapes");
-                RdfFileProcessor.loadRdfFiles(shapesFiles, shapesModel);
+                List<RelativePath> shapesPaths = shapes.getAllInputPaths(dataset, state);
+                FileHelper.ensureRelativePathsExist(shapesPaths, "shapes");
+                FileAccess.readRdf(shapesPaths, shapesModel, state);
                 if (shapes.getGraphs() != null) {
                     PipelineHelper.ensureGraphsExist(dataset, data.getGraphs(), "shapes");
                     shapes.getGraphs().forEach(g -> shapesModel.add(dataset.getNamedModel(g)));

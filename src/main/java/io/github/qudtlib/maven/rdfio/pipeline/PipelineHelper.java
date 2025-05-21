@@ -1,5 +1,7 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.GraphSelection;
+import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,12 +23,12 @@ public class PipelineHelper {
         List<Pattern> excludePatterns = new ArrayList<>();
 
         // Convert include patterns to regex
-        for (String include : graphSelection.getIncludes()) {
+        for (String include : graphSelection.getInclude()) {
             includePatterns.add(Pattern.compile(wildcardToRegex(include)));
         }
 
         // Convert exclude patterns to regex
-        for (String exclude : graphSelection.getExcludes()) {
+        for (String exclude : graphSelection.getExclude()) {
             excludePatterns.add(Pattern.compile(wildcardToRegex(exclude)));
         }
 
@@ -109,7 +111,7 @@ public class PipelineHelper {
         }
     }
 
-    static String serializeMessageDigest(MessageDigest digest) {
+    public static String serializeMessageDigest(MessageDigest digest) {
         byte[] hashBytes = digest.digest();
         StringBuilder sb = new StringBuilder();
         for (byte b : hashBytes) {

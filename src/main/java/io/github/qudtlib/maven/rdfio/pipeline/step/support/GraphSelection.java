@@ -1,28 +1,36 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.util.ArrayList;
 import java.util.List;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class GraphSelection {
-    private final List<String> includes = new ArrayList<>();
+    private final List<String> include = new ArrayList<>();
 
-    private final List<String> excludes = new ArrayList<>();
+    private final List<String> exclude = new ArrayList<>();
 
-    public List<String> getIncludes() {
-        return includes;
+    public GraphSelection() {}
+
+    public GraphSelection(List<String> include, List<String> exclude) {
+        this.include.addAll(include);
+        this.exclude.addAll(exclude);
+    }
+
+    public List<String> getInclude() {
+        return include;
     }
 
     public void addInclude(String include) {
-        this.includes.add(include);
+        this.include.add(include);
     }
 
-    public List<String> getExcludes() {
-        return excludes;
+    public List<String> getExclude() {
+        return exclude;
     }
 
     public void addExclude(String exclude) {
-        this.excludes.add(exclude);
+        this.exclude.add(exclude);
     }
 
     // GraphSelection.java
@@ -64,5 +72,9 @@ public class GraphSelection {
         }
 
         return selection;
+    }
+
+    public boolean isEmpty() {
+        return this.include.isEmpty() && this.exclude.isEmpty();
     }
 }
