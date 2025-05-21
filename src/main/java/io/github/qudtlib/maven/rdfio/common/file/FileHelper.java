@@ -1,9 +1,11 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
+import io.github.qudtlib.maven.rdfio.pipeline.PluginConfigurationExeception;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.tools.ant.DirectoryScanner;
@@ -81,6 +83,22 @@ public class FileHelper {
             return filePath.startsWith(dirPath);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static void ensureFilesExist(List<File> files, String kind) {
+        for (File file : files) {
+            if (!file.exists()) {
+                try {
+                    throw new PluginConfigurationExeception(
+                            "Configured %s file does not exist: %s"
+                                    .formatted(kind, file.getCanonicalPath()));
+                } catch (IOException e) {
+                    throw new PluginConfigurationExeception(
+                            "Configured %s file does not exist: %s"
+                                    .formatted(kind, file.getAbsolutePath()));
+                }
+            }
         }
     }
 }

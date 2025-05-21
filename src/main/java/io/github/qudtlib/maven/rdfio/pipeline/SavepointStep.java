@@ -40,6 +40,11 @@ public class SavepointStep implements Step {
     }
 
     @Override
+    public String getElementName() {
+        return "savepoint";
+    }
+
+    @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (id == null) {
             throw new MojoExecutionException("Savepoint id is required");

@@ -99,7 +99,7 @@ public class PipelineMojo extends AbstractMojo {
                 Step step = pipeline.getSteps().get(i);
                 state.setPreviousStepHash(previousHash);
                 previousHash = step.calculateHash(previousHash, state);
-                step.execute(dataset, state);
+                step.executeAndWrapException(dataset, state);
             }
         } catch (Throwable throwable) {
             throw new MojoExecutionException("Error executing PipelineMojo", throwable);

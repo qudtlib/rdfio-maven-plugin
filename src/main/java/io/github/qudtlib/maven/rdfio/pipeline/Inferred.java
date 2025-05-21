@@ -1,6 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
-import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class Inferred {
@@ -25,27 +24,32 @@ public class Inferred {
     }
 
     // Inferred.java
-    public static Inferred parse(Xpp3Dom config) throws MojoExecutionException {
-        if (config == null) {
-            throw new MojoExecutionException(
+    public static Inferred parse(Xpp3Dom config) {
+        if (config == null || config.getChildren().length == 0) {
+            throw new ConfigurationParseException(
                     """
                             Inferred configuration is missing.
-                            Usage: Provide an <inferred> element with a <graph> and/or <file> element.
-                            Example: <inferred><graph>inferred:graph</graph></inferred>""");
+                            %s"""
+                            .formatted(usage()));
         }
 
         Inferred inferred = new Inferred();
 
-        inferred.setGraph(ParsingHelper.getNonBlankChildString(config, "graph"));
-        inferred.setFile(ParsingHelper.getNonBlankChildString(config, "file"));
+        ParsingHelper.optionalStringChild(config, "graph", inferred::setGraph, Inferred::usage);
+        ParsingHelper.optionalStringChild(config, "file", inferred::setFile, Inferred::usage);
         if (inferred.getFile() == null && inferred.getGraph() == null) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
-                            Inferred must h
-                            ave at least one child element.
-                            Usage: Provide an <inferred> element with a <graph> and/or <file> element.
-                            Example: <inferred><graph>inferred:graph</graph></inferred>""");
+                            Inferred must have at least one child element.
+                            %s"""
+                            .formatted(usage()));
         }
         return inferred;
+    }
+
+    public static String usage() {
+        return """
+                            Usage: Provide an <inferred> element with a <graph> and/or <file> element.
+                            Example: <inferred><graph>inferred:graph</graph></inferred>""";
     }
 }

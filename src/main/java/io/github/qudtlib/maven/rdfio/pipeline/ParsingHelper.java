@@ -1,5 +1,6 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -34,7 +35,7 @@ public class ParsingHelper {
             int maxCount)
             throws ConfigurationParseException {
         int count =
-                handleDomChildernInternal(config, name, childParser, childSetter, usageSupplier);
+                handleDomChildrenInternal(config, name, childParser, childSetter, usageSupplier);
         throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
     }
 
@@ -86,7 +87,19 @@ public class ParsingHelper {
             int minCount,
             int maxCount)
             throws ConfigurationParseException {
-        int count = handleStringChildernInternal(config, name, childHandler, usageSupplier);
+        int count = handleStringChildrenInternal(config, name, childHandler, usageSupplier);
+        throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+    }
+
+    public static void booleanChildren(
+            Xpp3Dom config,
+            String name,
+            Consumer<Boolean> childHandler,
+            Supplier<String> usageSupplier,
+            int minCount,
+            int maxCount)
+            throws ConfigurationParseException {
+        int count = handleBooleanChildrenInternal(config, name, childHandler, usageSupplier);
         throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
     }
 
@@ -95,7 +108,7 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, valueSetter, usageSupplier, 0, -1);
+        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 0, -1);
     }
 
     public static void requiredStringChildren(
@@ -103,7 +116,7 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, valueSetter, usageSupplier, 1, -1);
+        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 1, -1);
     }
 
     public static void requiredStringChild(
@@ -111,7 +124,7 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, valueSetter, usageSupplier, 1, 1);
+        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 1, 1);
     }
 
     public static void optionalStringChild(
@@ -119,7 +132,32 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, valueSetter, usageSupplier, 0, 1);
+        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 0, 1);
+    }
+
+    private static Consumer<String> requireNonBlank(Consumer<String> valueSetter) {
+        return string -> {
+            if (string == null || string.trim().isBlank()) {
+                throw new ConfigurationParseException("String value must not be blank");
+            }
+            valueSetter.accept(string);
+        };
+    }
+
+    public static void requiredBooleanChild(
+            Xpp3Dom config,
+            String name,
+            Consumer<Boolean> valueSetter,
+            Supplier<String> usageSupplier) {
+        booleanChildren(config, name, valueSetter, usageSupplier, 1, 1);
+    }
+
+    public static void optionalBooleanChild(
+            Xpp3Dom config,
+            String name,
+            Consumer<Boolean> valueSetter,
+            Supplier<String> usageSupplier) {
+        booleanChildren(config, name, valueSetter, usageSupplier, 0, 1);
     }
 
     private static void throwCountExceptions(
@@ -145,7 +183,7 @@ public class ParsingHelper {
         }
     }
 
-    private static int handleStringChildernInternal(
+    private static int handleStringChildrenInternal(
             Xpp3Dom config,
             String name,
             Consumer<String> childHandler,
@@ -153,21 +191,34 @@ public class ParsingHelper {
             throws ConfigurationParseException {
         int count = 0;
         for (Xpp3Dom child : config.getChildren(name)) {
-            String childString = ParsingHelper.getNonBlankString(child);
+            String childString =
+                    Optional.ofNullable(child.getValue()).map(String::trim).orElse(null);
             if (childString != null) {
                 childHandler.accept(childString);
-            } else {
-                throw new ConfigurationParseException(
-                        String.format(
-                                "<%s> subelement must not be empty.\n%s",
-                                name, usageSupplier.get()));
+                count++;
             }
-            count++;
         }
         return count;
     }
 
-    private static <T> int handleDomChildernInternal(
+    private static int handleBooleanChildrenInternal(
+            Xpp3Dom config,
+            String name,
+            Consumer<Boolean> childHandler,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        int count = 0;
+        for (Xpp3Dom child : config.getChildren(name)) {
+            String childString = ParsingHelper.getNonBlankString(child);
+            if (childString != null) {
+                childHandler.accept(Boolean.parseBoolean(childString));
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static <T> int handleDomChildrenInternal(
             Xpp3Dom config,
             String name,
             Function<Xpp3Dom, T> childParser,

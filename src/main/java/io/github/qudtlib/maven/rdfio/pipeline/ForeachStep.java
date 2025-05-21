@@ -45,6 +45,11 @@ public class ForeachStep implements Step {
     }
 
     @Override
+    public String getElementName() {
+        return "foreach";
+    }
+
+    @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (var == null || values == null || body.isEmpty()) {
             throw new MojoExecutionException("Var, values, and body are required in foreach step");

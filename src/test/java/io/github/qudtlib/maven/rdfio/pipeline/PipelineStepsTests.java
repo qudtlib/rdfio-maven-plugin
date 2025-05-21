@@ -64,7 +64,6 @@ public class PipelineStepsTests {
                         ResourceFactory.createProperty("http://example.org/p"),
                         ResourceFactory.createResource("http://example.org/o")));
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
-        System.out.println(PipelineHelper.datasetToPrettyTrig(dataset));
         Resource fileRes =
                 FileHelper.getFileUrl(FileHelper.resolveRelativeUnixPath(baseDir, fileArg));
         assertTrue(
@@ -79,7 +78,7 @@ public class PipelineStepsTests {
         step.setToGraph("test:graph");
 
         assertThrows(
-                MojoExecutionException.class,
+                PluginConfigurationExeception.class,
                 () -> step.execute(dataset, state),
                 "Should throw when loading non-existent file");
     }
@@ -136,7 +135,7 @@ public class PipelineStepsTests {
         step.addGraph("nonexistent:graph");
         step.setToGraph("target:graph");
 
-        assertThrows(MojoExecutionException.class, () -> step.execute(dataset, state));
+        assertThrows(PluginConfigurationExeception.class, () -> step.execute(dataset, state));
     }
 
     @Test
@@ -853,6 +852,12 @@ public class PipelineStepsTests {
 
     // Dummy class to simulate an invalid step
     private static class UnknownStep implements Step {
+
+        @Override
+        public String getElementName() {
+            return "unknown";
+        }
+
         @Override
         public void execute(Dataset dataset, PipelineState state) {
             throw new UnsupportedOperationException("Unknown step");

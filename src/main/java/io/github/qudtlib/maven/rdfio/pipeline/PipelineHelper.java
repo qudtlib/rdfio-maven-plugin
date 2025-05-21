@@ -98,4 +98,13 @@ public class PipelineHelper {
             it.remove();
         }
     }
+
+    public static void ensureGraphsExist(Dataset dataset, List<String> graphs, String kind) {
+        for (String graph : graphs) {
+            if (!dataset.containsNamedModel(graph)) {
+                throw new PluginConfigurationExeception(
+                        "Configured %s graph %s does not exist in dataset".formatted(kind, graph));
+            }
+        }
+    }
 }

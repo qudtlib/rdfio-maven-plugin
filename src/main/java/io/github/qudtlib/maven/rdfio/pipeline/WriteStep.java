@@ -41,6 +41,11 @@ public class WriteStep implements Step {
     }
 
     @Override
+    public String getElementName() {
+        return "write";
+    }
+
+    @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (graphs.isEmpty()) {
             throw new MojoExecutionException("Graph is required in write step");

@@ -19,6 +19,11 @@ public class SparqlUpdateStep implements Step {
     }
 
     @Override
+    public String getElementName() {
+        return "sparqlUpdate";
+    }
+
+    @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (sparql == null) {
             throw new MojoExecutionException("SPARQL query is required in sparqlUpdate step");

@@ -4,7 +4,26 @@ import org.apache.jena.query.Dataset;
 import org.apache.maven.plugin.MojoExecutionException;
 
 public interface Step {
-    void execute(Dataset dataset, PipelineState state) throws MojoExecutionException;
+
+    /**
+     * Wraps execute() and wraps any RuntimeException in a MojoExecutionException.
+     *
+     * @param dataset
+     * @param state
+     * @throws MojoExecutionException
+     */
+    default void executeAndWrapException(Dataset dataset, PipelineState state) throws MojoExecutionException {
+        try {
+            execute(dataset, state);
+        } catch (RuntimeException e) {
+            throw new MojoExecutionException("Error executing %s step", e);
+        }
+    }
+
+    String getElementName();
+
+    void execute(Dataset dataset, PipelineState state)
+            throws RuntimeException, MojoExecutionException;
 
     /**
      * Calculates a hash for the step based on its static inputs and configuration, incorporating

@@ -82,6 +82,11 @@ public class AddStep implements Step {
         this.toGraphsPattern = toGraphsPattern;
     }
 
+    @Override
+    public String getElementName() {
+        return "add";
+    }
+
     public static AddStep parse(Xpp3Dom config) {
         if (config == null) {
             throw new ConfigurationParseException(
@@ -163,6 +168,8 @@ public class AddStep implements Step {
                 String targetGraph = toGraph != null ? toGraph : tgp;
 
                 Model model = dataset.getNamedModel(targetGraph);
+                List<File> files = List.of(inputFile);
+                FileHelper.ensureFilesExist(files, "input");
                 RdfFileProcessor.loadRdfFiles(List.of(inputFile), model);
                 Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
                 metaModel.add(
@@ -173,6 +180,7 @@ public class AddStep implements Step {
             }
         }
         List<String> inputGraphs = this.graphs;
+        PipelineHelper.ensureGraphsExist(dataset, inputGraphs, "input graph");
         inputGraphs.addAll(PipelineHelper.getGraphs(dataset, graphSelection));
         if (!inputGraphs.isEmpty()) {
             if (toGraph != null) {

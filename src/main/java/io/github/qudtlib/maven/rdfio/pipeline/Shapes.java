@@ -3,7 +3,6 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class Shapes {
@@ -39,8 +38,8 @@ public class Shapes {
         this.graphs.add(graph);
     }
 
-    public void setGraphs(GraphSelection selection) {
-        this.graphSelection = graphSelection;
+    public void setGraphSelection(GraphSelection selection) {
+        this.graphSelection = selection;
     }
 
     public GraphSelection getGraphSelection() {
@@ -48,9 +47,9 @@ public class Shapes {
     }
 
     // Shapes.java
-    public static Shapes parse(Xpp3Dom config) throws MojoExecutionException {
-        if (config == null) {
-            throw new MojoExecutionException(
+    public static Shapes parse(Xpp3Dom config) {
+        if (config == null || config.getChildren().length == 0) {
+            throw new ConfigurationParseException(
                     """
                             Shapes configuration is missing.
                             Usage: Provide a <shapes> element with either <file> or <graph>.
@@ -58,23 +57,28 @@ public class Shapes {
         }
 
         Shapes shapes = new Shapes();
-        Xpp3Dom fileDom = config.getChild("file");
-        Xpp3Dom graphDom = config.getChild("graph");
-        if (fileDom != null && fileDom.getValue() != null && !fileDom.getValue().trim().isEmpty()) {
-            shapes.addFile(fileDom.getValue().trim());
-        } else if (graphDom != null
-                && graphDom.getValue() != null
-                && !graphDom.getValue().trim().isEmpty()) {
-            shapes.addGraph(graphDom.getValue().trim());
-        } else {
-            throw new MojoExecutionException(
+        ParsingHelper.optionalStringChildren(config, "file", shapes::addFile, Data::usage);
+        ParsingHelper.optionalStringChildren(config, "graph", shapes::addGraph, Data::usage);
+        ParsingHelper.optionalDomChild(
+                config, "files", FileSelection::parse, shapes::setFileSelection, Data::usage);
+        ParsingHelper.optionalDomChild(
+                config, "graphs", GraphSelection::parse, shapes::setGraphSelection, Data::usage);
+        if (shapes.files.isEmpty()
+                && shapes.fileSelection == null
+                && shapes.graphs.isEmpty()
+                && shapes.graphSelection == null) {
+            throw new ConfigurationParseException(
                     """
-                            Shapes requires one of <file> or <graph>.
-                            Usage: Specify a SHACL shapes file or graph.
-                            Examples:
-                            - File: <file>shapes.ttl</file>
-                            - Graph: <graph>shapes:graph</graph>""");
+                            Shapes requires one of <file>, <files>, <graph> or <graphs>.
+                            %s"""
+                            .formatted(usage()));
         }
         return shapes;
+    }
+
+    public static String usage() {
+        return """
+                            Usage: Provide a <shapes> element with either <file> or <graph>.
+                            Example: <shapes><file>shapes.ttl</file></shapes>""";
     }
 }

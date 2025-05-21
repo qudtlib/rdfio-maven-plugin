@@ -9,7 +9,6 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -235,7 +234,7 @@ public class AddStepExecuteTests {
 
         // Act & Assert: Expect exception
         assertThrows(
-                MojoExecutionException.class,
+                PluginConfigurationExeception.class,
                 () -> step.execute(dataset, state),
                 "Should throw when the specified file does not exist");
     }
@@ -255,7 +254,7 @@ public class AddStepExecuteTests {
 
         // Act & Assert: Expect exception
         assertThrows(
-                MojoExecutionException.class,
+                PluginConfigurationExeception.class,
                 () -> step.execute(dataset, state),
                 "Should throw when the source graph does not exist");
     }

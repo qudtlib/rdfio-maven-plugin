@@ -3,7 +3,6 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class Data {
@@ -48,38 +47,35 @@ public class Data {
     }
 
     // Data.java
-    public static Data parse(Xpp3Dom config) throws MojoExecutionException {
-        if (config == null) {
-            throw new MojoExecutionException(
+    public static Data parse(Xpp3Dom config) {
+        if (config == null || config.getChildren().length == 0) {
+            throw new ConfigurationParseException(
                     """
                             Data configuration is missing.
-                            Usage: Provide a <data> element with optional <file>, <files>, <graph> or <graphs>.
-                            Example: <data><file>data.ttl</file></data>""");
+                            %s"""
+                            .formatted(usage()));
         }
 
         Data data = new Data();
-        String file = ParsingHelper.getNonBlankChildString(config, "file");
-        data.addFile(file);
-        String graph = ParsingHelper.getNonBlankChildString(config, "graph");
-        data.addGraph(graph);
-        Xpp3Dom fileSelectionDom = config.getChild("files");
-        if (fileSelectionDom != null) {
-            data.setFileSelection(FileSelection.parse(fileSelectionDom));
-        }
-        Xpp3Dom graphSelectionDom = config.getChild("graphs");
-        if (graphSelectionDom != null) {
-            data.setGraphSelection(GraphSelection.parse(graphSelectionDom));
-        }
+        ParsingHelper.optionalStringChildren(config, "file", data::addFile, Data::usage);
+        ParsingHelper.optionalStringChildren(config, "graph", data::addGraph, Data::usage);
+        ParsingHelper.optionalDomChild(
+                config, "files", FileSelection::parse, data::setFileSelection, Data::usage);
+        ParsingHelper.optionalDomChild(
+                config, "graphs", GraphSelection::parse, data::setGraphSelection, Data::usage);
         if (data.files.isEmpty()
                 && data.fileSelection == null
                 && data.graphs.isEmpty()
                 && data.graphSelection == null) {
-            throw new MojoExecutionException(
-                    """
-                            Data must have at least one nested element.
-                            Usage: Provide a <data> element with optional <file>, <files>, <graph> or <graphs>.
-                            Example: <data><file>data.ttl</file></data>""");
+            throw new ConfigurationParseException(
+                    "Data must have at least one nested element.\n" + usage());
         }
         return data;
+    }
+
+    public static String usage() {
+        return """
+                    Usage: Provide a <data> element with optional <file>, <files>, <graph> or <graphs>.
+                    Example: <data><file>data.ttl</file></data>""";
     }
 }
