@@ -225,10 +225,9 @@ public class ShaclInferParseTests {
                 </shaclInfer>
                 """;
         Xpp3Dom config = buildConfig(xml);
-        assertThrows(
-                ConfigurationParseException.class,
-                () -> parseShaclInferStep(config),
-                "Should throw for empty shapes element");
+        ShaclInferStep step = parseShaclInferStep(config);
+        assertEquals(List.of("data.ttl"), step.getData().getFiles());
+        assertEquals("inferred:graph", step.getInferred().getGraph());
     }
 
     @Test
@@ -378,10 +377,9 @@ public class ShaclInferParseTests {
                 </shaclInfer>
                 """;
         Xpp3Dom config = buildConfig(xml);
-        assertThrows(
-                ConfigurationParseException.class,
-                () -> parseShaclInferStep(config),
-                "Should throw for empty data element");
+        ShaclInferStep step = parseShaclInferStep(config);
+        assertEquals(List.of("shapes.ttl"), step.getShapes().getFiles());
+        assertEquals("inferred:graph", step.getInferred().getGraph());
     }
 
     @Test

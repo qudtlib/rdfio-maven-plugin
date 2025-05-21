@@ -1,5 +1,6 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineConfigurationExeception;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -44,12 +45,18 @@ public class RdfFileProcessor {
         }
     }
 
-    public static void updateHashWithFiles(List<File> files, MessageDigest digest)
-            throws IOException {
+    public static void updateHashWithFiles(List<File> files, MessageDigest digest) {
         for (File file : files) {
             if (file.exists()) {
                 digest.update(file.getPath().getBytes(StandardCharsets.UTF_8));
-                digest.update(Files.readAllBytes(file.toPath()));
+                try {
+                    digest.update(Files.readAllBytes(file.toPath()));
+                } catch (IOException e) {
+                    throw new PipelineConfigurationExeception(
+                            "Error updating hash with content of file %s"
+                                    .formatted(file.getAbsolutePath()),
+                            e);
+                }
             }
         }
     }

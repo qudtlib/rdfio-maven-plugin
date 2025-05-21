@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio;
 
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
+import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import io.github.qudtlib.maven.rdfio.filter.Graphs;
 import io.github.qudtlib.maven.rdfio.filter.GraphsHelper;
 import io.github.qudtlib.maven.rdfio.filter.Input;
@@ -9,24 +10,18 @@ import io.github.qudtlib.maven.rdfio.product.EachFile;
 import io.github.qudtlib.maven.rdfio.product.Product;
 import io.github.qudtlib.maven.rdfio.product.Products;
 import io.github.qudtlib.maven.rdfio.product.SingleFile;
-import io.github.qudtlib.maven.rdfio.sparql.ShaclSparqlFunctionRegistrar;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.stream.Streams;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.sparql.function.FunctionRegistry;
-import org.apache.jena.vocabulary.RDF;
-import org.apache.jena.vocabulary.RDFS;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.topbraid.shacl.vocabulary.SH;
 
 @Mojo(name = "make", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class MakeMojo extends AbstractRdfioMojo {
@@ -72,26 +67,8 @@ public class MakeMojo extends AbstractRdfioMojo {
         String[] files = FileHelper.getFilesForFileSelection(shaclFunctionFileSelection, basedir);
         getLog().debug("Importing SHACL functions from " + Arrays.toString(files));
         loadRdf(targetDataset, Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName(), files);
-        getLog().debug("Registering SHACL functions");
-        // we have to enable simple subclass reasoning such that a sh:SPARQLFunction is recognized
-        // as a sh:Function
-        Model shaclFunctionsModel =
-                targetDataset.getNamedModel(Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName());
-        // hack: we need to make sh:SPARQLFunction a subclass of sh:Function, otherwise topbraid
-        // will not find it.
-        shaclFunctionsModel.add(SH.SPARQLFunction, RDFS.subClassOf, SH.Function);
-        getLog().debug("sh:Function nodes found in loaded RDF:");
-        shaclFunctionsModel
-                .listSubjectsWithProperty(RDF.type, SH.Function)
-                .forEachRemaining(res -> getLog().debug("    " + res.toString()));
-        getLog().debug("sh:SPARQLFunction nodes found in loaded RDF:");
-        shaclFunctionsModel
-                .listSubjectsWithProperty(RDF.type, SH.SPARQLFunction)
-                .forEachRemaining(res -> getLog().debug("    " + res.toString()));
-        ShaclSparqlFunctionRegistrar.registerSHACLFunctions(shaclFunctionsModel);
-        FunctionRegistry registry = FunctionRegistry.get();
-        getLog().debug("Registered functions: ");
-        Streams.of(registry.keys()).sorted().forEach(uri -> getLog().debug("    " + uri));
+        SparqlHelper.registerShaclFunctions(
+                targetDataset, Graphs.SHACL_FUNCTIONS_GRAPH.getGraphName(), getLog());
     }
 
     private void makeSingleFile(SingleFile singleFileProduct, Model shaclFunctionsModel)

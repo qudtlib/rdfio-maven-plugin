@@ -28,11 +28,14 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input.ttl", step.getFiles().get(0), "File path should match");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
+        assertEquals(
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
         assertEquals("test:graph", step.getToGraph(), "toGraph should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }
 
@@ -52,14 +55,18 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(2, step.getFiles().size(), "Should have two files");
+        assertEquals(2, step.getInputsComponent().getFiles().size(), "Should have two files");
         assertEquals(
-                "target/test-input1.ttl", step.getFiles().get(0), "First file path should match");
+                "target/test-input1.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "First file path should match");
         assertEquals(
-                "target/test-input2.ttl", step.getFiles().get(1), "Second file path should match");
+                "target/test-input2.ttl",
+                step.getInputsComponent().getFiles().get(1),
+                "Second file path should match");
         assertEquals("test:graph", step.getToGraph(), "toGraph should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }
 
@@ -81,22 +88,27 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertTrue(step.getFiles().isEmpty(), "Files should be empty");
-        assertNotNull(step.getFileSelection(), "FileSelection should not be null");
+        assertTrue(step.getInputsComponent().getFiles().isEmpty(), "Files should be empty");
+        assertNotNull(
+                step.getInputsComponent().getFileSelection(), "FileSelection should not be null");
         assertEquals(
-                1, step.getFileSelection().getInclude().size(), "Should have one include pattern");
+                1,
+                step.getInputsComponent().getFileSelection().getInclude().size(),
+                "Should have one include pattern");
         assertEquals(
                 "target/*.ttl",
-                step.getFileSelection().getInclude().get(0),
+                step.getInputsComponent().getFileSelection().getInclude().get(0),
                 "Include pattern should match");
         assertEquals(
-                1, step.getFileSelection().getExclude().size(), "Should have one exclude pattern");
+                1,
+                step.getInputsComponent().getFileSelection().getExclude().size(),
+                "Should have one exclude pattern");
         assertEquals(
                 "target/temp/*.ttl",
-                step.getFileSelection().getExclude().get(0),
+                step.getInputsComponent().getFileSelection().getExclude().get(0),
                 "Exclude pattern should match");
         assertEquals("test:graph", step.getToGraph(), "toGraph should match");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }
 
@@ -115,10 +127,11 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertTrue(step.getFiles().isEmpty(), "Files should be empty");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertEquals(1, step.getGraphs().size(), "Should have one graph");
-        assertEquals("source:graph", step.getGraphs().get(0), "Graph should match");
+        assertTrue(step.getInputsComponent().getFiles().isEmpty(), "Files should be empty");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertEquals(1, step.getInputsComponent().getGraphs().size(), "Should have one graph");
+        assertEquals(
+                "source:graph", step.getInputsComponent().getGraphs().get(0), "Graph should match");
         assertEquals("test:graph", step.getToGraph(), "toGraph should match");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }
@@ -139,11 +152,17 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertTrue(step.getFiles().isEmpty(), "Files should be empty");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertEquals(2, step.getGraphs().size(), "Should have two graphs");
-        assertEquals("source:graph1", step.getGraphs().get(0), "First graph should match");
-        assertEquals("source:graph2", step.getGraphs().get(1), "Second graph should match");
+        assertTrue(step.getInputsComponent().getFiles().isEmpty(), "Files should be empty");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertEquals(2, step.getInputsComponent().getGraphs().size(), "Should have two graphs");
+        assertEquals(
+                "source:graph1",
+                step.getInputsComponent().getGraphs().get(0),
+                "First graph should match");
+        assertEquals(
+                "source:graph2",
+                step.getInputsComponent().getGraphs().get(1),
+                "Second graph should match");
         assertEquals("test:graph", step.getToGraph(), "toGraph should match");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }
@@ -163,10 +182,13 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input.ttl", step.getFiles().get(0), "File path should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
+        assertEquals(
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraph(), "toGraph should be null");
         assertEquals("test:graph_{1}", step.getToGraphsPattern(), "toGraphsPattern should match");
     }
@@ -190,17 +212,24 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input1.ttl", step.getFiles().get(0), "File path should match");
-        assertNotNull(step.getFileSelection(), "FileSelection should not be null");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
         assertEquals(
-                1, step.getFileSelection().getInclude().size(), "Should have one include pattern");
+                "target/test-input1.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
+        assertNotNull(
+                step.getInputsComponent().getFileSelection(), "FileSelection should not be null");
+        assertEquals(
+                1,
+                step.getInputsComponent().getFileSelection().getInclude().size(),
+                "Should have one include pattern");
         assertEquals(
                 "target/*.ttl",
-                step.getFileSelection().getInclude().get(0),
+                step.getInputsComponent().getFileSelection().getInclude().get(0),
                 "Include pattern should match");
-        assertEquals(1, step.getGraphs().size(), "Should have one graph");
-        assertEquals("source:graph", step.getGraphs().get(0), "Graph should match");
+        assertEquals(1, step.getInputsComponent().getGraphs().size(), "Should have one graph");
+        assertEquals(
+                "source:graph", step.getInputsComponent().getGraphs().get(0), "Graph should match");
         assertEquals("test:graph", step.getToGraph(), "toGraph should match");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }
@@ -217,7 +246,7 @@ public class AddStepParseTests {
         assertThrows(
                 Exception.class,
                 () -> parseAddStep(config),
-                "Empty AddStep config should throw due to missing toGraph/toGraphsPattern");
+                "Empty AddStep config should throw due to missing input and missing ougput");
     }
 
     @Test
@@ -232,10 +261,11 @@ public class AddStepParseTests {
                 Xpp3DomBuilder.build(
                         new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)),
                         StandardCharsets.UTF_8.name());
-        assertThrows(
-                Exception.class,
-                () -> parseAddStep(config),
-                "AddStep missing toGraph and toGraphsPattern should throw");
+        AddStep step = parseAddStep(config);
+        assertEquals(
+                List.of("target/test-input.ttl"),
+                step.getInputsComponent().getFiles(),
+                "files should match");
     }
 
     @Test
@@ -305,10 +335,13 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input.ttl", step.getFiles().get(0), "File path should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
+        assertEquals(
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertEquals("test:graph", step.getToGraph(), "toGraph should take precedence");
         assertNull(
                 step.getToGraphsPattern(),
@@ -330,10 +363,13 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input.ttl", step.getFiles().get(0), "File path should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
+        assertEquals(
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraph(), "toGraph should take precedence");
         assertEquals(
                 step.getToGraphsPattern(),
@@ -356,10 +392,13 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input.ttl", step.getFiles().get(0), "File path should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
+        assertEquals(
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraph(), "toGraph should take precedence");
         assertEquals(
                 step.getToGraphsPattern(), "fromFile:${path}", "toGraphsPattern should be present");
@@ -380,10 +419,13 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
-        assertEquals("target/test-input.ttl", step.getFiles().get(0), "File path should match");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
+        assertEquals(
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should match");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertNull(step.getToGraph(), "toGraph should take precedence");
         assertEquals(
                 step.getToGraphsPattern(),
@@ -419,7 +461,8 @@ public class AddStepParseTests {
                 Xpp3DomBuilder.build(
                         new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)),
                         StandardCharsets.UTF_8.name());
-        assertThrows(ConfigurationParseException.class, () -> parseAddStep(config));
+        AddStep step = parseAddStep(config);
+        assertEquals("test:graph", step.getToGraph(), "toGraph should match");
     }
 
     @Test
@@ -437,11 +480,13 @@ public class AddStepParseTests {
                         StandardCharsets.UTF_8.name());
         AddStep step = parseAddStep(config);
 
-        assertEquals(1, step.getFiles().size(), "Should have one file");
+        assertEquals(1, step.getInputsComponent().getFiles().size(), "Should have one file");
         assertEquals(
-                "target/test-input.ttl", step.getFiles().get(0), "File path should be trimmed");
-        assertNull(step.getFileSelection(), "FileSelection should be null");
-        assertTrue(step.getGraphs().isEmpty(), "Graphs should be empty");
+                "target/test-input.ttl",
+                step.getInputsComponent().getFiles().get(0),
+                "File path should be trimmed");
+        assertNull(step.getInputsComponent().getFileSelection(), "FileSelection should be null");
+        assertTrue(step.getInputsComponent().getGraphs().isEmpty(), "Graphs should be empty");
         assertEquals("test:graph", step.getToGraph(), "toGraph should be trimmed");
         assertNull(step.getToGraphsPattern(), "toGraphsPattern should be null");
     }

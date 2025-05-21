@@ -1,25 +1,55 @@
-package io.github.qudtlib.maven.rdfio.pipeline;
+package io.github.qudtlib.maven.rdfio.common.sparql;
 
+import static io.github.qudtlib.maven.rdfio.filter.GraphsHelper.getAllModels;
+
+import io.github.qudtlib.maven.rdfio.pipeline.RDFIO;
+import io.github.qudtlib.maven.rdfio.sparql.ShaclSparqlFunctionRegistrar;
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.commons.lang3.stream.Streams;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.sparql.function.FunctionRegistry;
 import org.apache.jena.update.UpdateAction;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
+import org.topbraid.shacl.vocabulary.SH;
 
-/**
- * Helper class for executing SPARQL queries and updates with variable bindings from the metadata
- * graph.
- */
 public class SparqlHelper {
+    public static String addPrefixes(String update, Model model) {
+        String prefixes =
+                model.getNsPrefixMap().entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .map(e -> String.format("PREFIX %s: <%s>", e.getKey(), e.getValue()))
+                        .collect(Collectors.joining("\n"));
+        return prefixes.trim().isBlank() ? update : prefixes + "\n" + update;
+    }
 
-    /** Interface for processing SPARQL query results. */
-    public interface QueryResultProcessor {
-        default void processAskResult(boolean result) {}
+    public static String addPrefixes(String sparql, Dataset dataset) {
+        String prefixes =
+                getAllModels(dataset).stream()
+                        .map(Model::getNsPrefixMap)
+                        .map(Map::entrySet)
+                        .flatMap(Collection::stream)
+                        .distinct()
+                        .sorted(Map.Entry.comparingByKey())
+                        .map(e -> String.format("PREFIX %s: <%s>", e.getKey(), e.getValue()))
+                        .collect(Collectors.joining("\n"));
+        return prefixes.trim().isBlank() ? sparql : prefixes + "\n" + sparql;
+    }
 
-        default void processSelectResult(ResultSet result) {}
-
-        default void processConstructOrDescribeResult(Model result) {}
+    public static String withLineNumbers(String updateWithPrefixes) {
+        String[] lines = updateWithPrefixes.split("\n");
+        int width = String.valueOf(lines.length).length();
+        return IntStream.range(0, lines.length)
+                .mapToObj(i -> String.format("%" + width + "d %s", i + 1, lines[i]))
+                .collect(Collectors.joining("\n"));
     }
 
     /**
@@ -60,11 +90,13 @@ public class SparqlHelper {
      */
     public static void executeSparqlUpdateWithVariables(
             String sparql, Dataset dataset, String metadataGraph) throws MojoExecutionException {
+        sparql = addPrefixes(sparql, dataset);
         QuerySolutionMap bindings = extractVariableBindings(dataset, metadataGraph);
         try {
             UpdateAction.parseExecute(sparql, dataset, bindings);
         } catch (Exception e) {
-            throw new MojoExecutionException("Failed to execute SPARQL update: " + sparql, e);
+            throw new MojoExecutionException(
+                    "Failed to execute SPARQL update:\n" + withLineNumbers(sparql), e);
         }
     }
 
@@ -83,6 +115,7 @@ public class SparqlHelper {
             String sparql, Dataset dataset, String metadataGraph, QueryResultProcessor processor)
             throws MojoExecutionException {
         try {
+            sparql = addPrefixes(sparql, dataset);
             Query query = QueryFactory.create(sparql);
             QuerySolutionMap bindings = extractVariableBindings(dataset, metadataGraph);
             try (QueryExecution qe = QueryExecutionFactory.create(query, dataset, bindings)) {
@@ -98,7 +131,39 @@ public class SparqlHelper {
                 }
             }
         } catch (Exception e) {
-            throw new MojoExecutionException("Failed to execute SPARQL query: " + sparql, e);
+            throw new MojoExecutionException(
+                    "Failed to execute SPARQL query:\n" + withLineNumbers(sparql), e);
         }
+    }
+
+    public static void registerShaclFunctions(Dataset dataset, String graphName, Log log) {
+        log.debug("Registering SHACL functions");
+        // we have to enable simple subclass reasoning such that a sh:SPARQLFunction is recognized
+        // as a sh:Function
+        Model shaclFunctionsModel = dataset.getNamedModel(graphName);
+        // hack: we need to make sh:SPARQLFunction a subclass of sh:Function, otherwise topbraid
+        // will not find it.
+        shaclFunctionsModel.add(SH.SPARQLFunction, RDFS.subClassOf, SH.Function);
+        log.debug("sh:Function nodes found in loaded RDF:");
+        shaclFunctionsModel
+                .listSubjectsWithProperty(RDF.type, SH.Function)
+                .forEachRemaining(res -> log.debug("    " + res.toString()));
+        log.debug("sh:SPARQLFunction nodes found in loaded RDF:");
+        shaclFunctionsModel
+                .listSubjectsWithProperty(RDF.type, SH.SPARQLFunction)
+                .forEachRemaining(res -> log.debug("    " + res.toString()));
+        ShaclSparqlFunctionRegistrar.registerSHACLFunctions(shaclFunctionsModel);
+        FunctionRegistry registry = FunctionRegistry.get();
+        log.debug("Registered functions: ");
+        Streams.of(registry.keys()).sorted().forEach(uri -> log.debug("    " + uri));
+    }
+
+    /** Interface for processing SPARQL query results. */
+    public interface QueryResultProcessor {
+        default void processAskResult(boolean result) {}
+
+        default void processSelectResult(ResultSet result) {}
+
+        default void processConstructOrDescribeResult(Model result) {}
     }
 }

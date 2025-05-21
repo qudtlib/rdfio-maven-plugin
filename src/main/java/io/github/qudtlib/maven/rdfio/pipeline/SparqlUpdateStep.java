@@ -1,14 +1,23 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
+import com.google.common.base.Charsets;
+import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
+import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
+import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class SparqlUpdateStep implements Step {
     private String sparql;
+
+    private String file;
 
     public String getSparql() {
         return sparql;
@@ -18,6 +27,14 @@ public class SparqlUpdateStep implements Step {
         this.sparql = sparql;
     }
 
+    public String getFile() {
+        return file;
+    }
+
+    public void setFile(String file) {
+        this.file = file;
+    }
+
     @Override
     public String getElementName() {
         return "sparqlUpdate";
@@ -25,11 +42,27 @@ public class SparqlUpdateStep implements Step {
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
-        if (sparql == null) {
-            throw new MojoExecutionException("SPARQL query is required in sparqlUpdate step");
+        try {
+            String sparqlString = this.sparql;
+            if (sparqlString == null && this.file != null) {
+                File sparqlFile = FileHelper.resolveRelativeUnixPath(state.getBaseDir(), this.file);
+                sparqlString = Files.readString(sparqlFile.toPath(), Charsets.UTF_8);
+                if (sparqlString == null || sparqlString.isBlank()) {
+                    throw new MojoExecutionException(
+                            "No SPARQL found in specified file %s"
+                                    .formatted(sparqlFile.getAbsolutePath()));
+                }
+            }
+            if (sparqlString == null) {
+                throw new MojoExecutionException(
+                        "SPARQL query is required in sparqlUpdate step - neither <sparql> nor <file> element had a query");
+            }
+            SparqlHelper.executeSparqlUpdateWithVariables(
+                    sparqlString, dataset, state.getMetadataGraph());
+            state.getPrecedingSteps().add(this);
+        } catch (Exception e) {
+            throw new MojoExecutionException("Error executing SparqlUpdate step", e);
         }
-        SparqlHelper.executeSparqlUpdateWithVariables(sparql, dataset, state.getMetadataGraph());
-        state.getPrecedingSteps().add(this);
     }
 
     @Override
@@ -41,42 +74,86 @@ public class SparqlUpdateStep implements Step {
             if (sparql != null) {
                 digest.update(sparql.getBytes(StandardCharsets.UTF_8));
             }
-            byte[] hashBytes = digest.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) {
-                sb.append(String.format("%02x", b));
+            if (file != null) {
+                digest.update(file.getBytes(StandardCharsets.UTF_8));
+                RdfFileProcessor.updateHashWithFiles(
+                        List.of(FileHelper.resolveRelativeUnixPath(state.getBaseDir(), file)),
+                        digest);
             }
-            return sb.toString();
+            return PipelineHelper.serializeMessageDigest(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
     }
 
-    // SparqlUpdateStep.java
-    public static SparqlUpdateStep parse(Xpp3Dom config) throws MojoExecutionException {
+    /**
+     * Parses the XML configuration for the SPARQL Update step.
+     *
+     * @param config The Xpp3Dom configuration.
+     * @return A configured SparqlUpdateStep instance.
+     * @throws ConfigurationParseException If the configuration is invalid.
+     */
+    public static SparqlUpdateStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
-                            SparqlUpdate step configuration is missing.
-                            Usage: Provide a <sparqlUpdate> element with a <sparql> query.
-                            Example:
-                            <sparqlUpdate>
-                                <sparql>INSERT DATA { GRAPH &lt;test:graph&gt; { ... } }</sparql>
-                            </sparqlUpdate>""");
+                    SparqlUpdate step configuration is missing.
+                    %s"""
+                            .formatted(usage()));
         }
 
         SparqlUpdateStep step = new SparqlUpdateStep();
-        Xpp3Dom sparqlDom = config.getChild("sparql");
-        if (sparqlDom == null
-                || sparqlDom.getValue() == null
-                || sparqlDom.getValue().trim().isEmpty()) {
-            throw new MojoExecutionException(
-                    """
-                            SparqlUpdate step requires a non-empty <sparql> query.
-                            Usage: Provide a valid SPARQL Update query.
-                            Example: <sparql>INSERT DATA { GRAPH &lt;test:graph&gt; { &lt;http://example.org/s&gt; &lt;http://example.org/p&gt; &lt;http://example.org/o&gt; } }</sparql>""");
+        ParsingHelper.optionalStringChild(
+                config, "sparql", step::setSparql, SparqlUpdateStep::usage);
+        ParsingHelper.optionalStringChild(config, "file", step::setFile, SparqlUpdateStep::usage);
+        if (step.getSparql() == null && step.getFile() == null) {
+            throw new ConfigurationParseException(
+                    "Either a <sparql> or a <file> subelement must be provided\n%s"
+                            .formatted(usage()));
         }
-        step.setSparql(sparqlDom.getValue().trim());
+        if (step.getSparql() != null && step.getFile() != null) {
+            throw new ConfigurationParseException(
+                    "Cannot have a <sparql> and a <file> subelement\n%s".formatted(usage()));
+        }
         return step;
+    }
+
+    /**
+     * Provides usage information for configuring the SPARQL Update step.
+     *
+     * @return A string describing the configuration and usage.
+     */
+    public static String usage() {
+        return """
+                Usage: Provide a <sparqlUpdate> element with either a <sparql> or a <file> subelement.
+                - <sparql>: an inline sparql update
+                - <file>: a file containing the query.
+                Note: prefixes that are defined in the dataset do not need to be specified in the queries
+                Note: SHACL SPARQL functions that have been loaded using <shaclFunctions> can be used in queries
+                Note: if you have to use angled brackets ('<' and '>'), you have these options:
+                    - write them as &lt; and &gt;
+                    - wrap the whole query in <![CDATA[ ... (your query) ...]]>
+                Example:
+                <sparqlUpdate>
+                    <sparql>
+                        INSERT DATA { GRAPH &lt;test:graph&gt; {
+                            &lt;http://example.org/s&gt; &lt;http://example.org/p&gt; &lt;http://example.org/o&gt;
+                        } }
+                    </sparql>
+                </sparqlUpdate>
+                Alternative with CDATA:
+                <sparqlUpdate>
+                    <sparql>
+                        <![CDATA[
+                        INSERT DATA { GRAPH <test:graph> {
+                            <http://example.org/s> <http://example.org/p> <http://example.org/o>
+                        } }
+                        ]]>
+                    </sparql>
+                </sparqlUpdate>
+                Alternative with file:
+                <sparqlUpdate>
+                    <file>src/main/resources/update.rq</file>
+                </sparqlUpdate>""";
     }
 }

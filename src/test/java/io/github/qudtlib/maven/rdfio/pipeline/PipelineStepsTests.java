@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
+import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +40,7 @@ public class PipelineStepsTests {
         baseDir.mkdirs();
         workBaseDir.mkdirs();
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, RDFIO.metadataGraph.toString(), baseDir, workBaseDir);
+        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
         testOutputBase = new File(workBaseDir, "test-output");
         testOutputBase.mkdirs();
     }
@@ -48,7 +49,7 @@ public class PipelineStepsTests {
     void testAddStepWithFile() throws MojoExecutionException, IOException {
         AddStep step = new AddStep();
         String fileArg = "target/test-output/input.ttl";
-        step.addFile(fileArg);
+        step.getInputsComponent().addFile(fileArg);
         step.setToGraph("test:graph");
         String ttl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
         File inputFile = FileHelper.resolveRelativeUnixPath(baseDir, fileArg);
@@ -74,24 +75,27 @@ public class PipelineStepsTests {
     @Test
     void testAddStepWithNonExistentFile() {
         AddStep step = new AddStep();
-        step.addFile("target/rdfio/test-data/nonexistent.ttl");
+        step.getInputsComponent().addFile("target/rdfio/test-data/nonexistent.ttl");
         step.setToGraph("test:graph");
 
         assertThrows(
-                PluginConfigurationExeception.class,
+                PipelineConfigurationExeception.class,
                 () -> step.execute(dataset, state),
                 "Should throw when loading non-existent file");
     }
 
     @Test
-    void testAddStepWithMissingToGraph() {
+    void testAddStepWithMissingToGraph() throws MojoExecutionException {
         AddStep step = new AddStep();
-        step.addFile("src/test/resources/data.ttl");
-
-        assertThrows(
-                MojoExecutionException.class,
-                () -> step.execute(dataset, state),
-                "Should throw when toGraph and toGraphsPattern are missing");
+        step.getInputsComponent().addFile("src/test/resources/data.ttl");
+        step.execute(dataset, state);
+        assertTrue(
+                dataset.getDefaultModel()
+                        .contains(
+                                ResourceFactory.createResource("http://example.org/s"),
+                                ResourceFactory.createProperty("http://example.org/p"),
+                                ResourceFactory.createResource("http://example.org/o")),
+                "Default graph should contain the triple from the file");
     }
 
     @Test
@@ -99,7 +103,7 @@ public class PipelineStepsTests {
         AddStep step = new AddStep();
         FileSelection files = new FileSelection();
         files.setInclude("src/test/resources/dontfind/*.ttl");
-        step.setFileSelection(files);
+        step.getInputsComponent().setFileSelection(files);
         step.setToGraph("test:graph");
 
         step.execute(dataset, state);
@@ -116,7 +120,7 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("http://example.org/o"));
 
         AddStep step = new AddStep();
-        step.addGraph("source:graph");
+        step.getInputsComponent().addGraph("source:graph");
         step.setToGraph("target:graph");
 
         step.execute(dataset, state);
@@ -132,17 +136,18 @@ public class PipelineStepsTests {
     @Test
     void testAddStepWithNonExistentGraph() {
         AddStep step = new AddStep();
-        step.addGraph("nonexistent:graph");
+        step.getInputsComponent().addGraph("nonexistent:graph");
         step.setToGraph("target:graph");
 
-        assertThrows(PluginConfigurationExeception.class, () -> step.execute(dataset, state));
+        assertThrows(PipelineConfigurationExeception.class, () -> step.execute(dataset, state));
     }
 
     @Test
     void testShaclInferStep() throws MojoExecutionException, IOException {
-        Shapes shapes = new Shapes();
+        ShaclInferStep step = new ShaclInferStep();
+        InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
+        InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
         shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        Data data = new Data();
         data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
@@ -154,15 +159,12 @@ public class PipelineStepsTests {
                         ex:InferRule a sh:NodeShape ; sh:targetNode ex:s ; sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate ex:inferred ; sh:object ex:NewObject ] .""";
         String dataTtl = "<http://example.org/s> <http://example.org/p> <http://example.org/o> .";
 
-        File shapesFile =
-                new File(baseDir, makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        File dataFile =
-                new File(baseDir, makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
+        File shapesFile = new File(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
+        File dataFile = new File(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         shapesFile.getParentFile().mkdirs();
         Files.write(shapesFile.toPath(), shapesTtl.getBytes());
         Files.write(dataFile.toPath(), dataTtl.getBytes());
 
-        ShaclInferStep step = new ShaclInferStep();
         step.setShapes(shapes);
         step.setData(data);
         step.setInferred(inferred);
@@ -178,33 +180,30 @@ public class PipelineStepsTests {
     }
 
     private String makeFileParameterUnderTestOutputDir(String relativePath) {
-        return testOutputBase.getPath().replace('\\', '/') + relativePath;
+        return testOutputBase.getPath().replace('\\', '/')
+                + (relativePath.startsWith("/") ? relativePath : "/" + relativePath);
     }
 
     @Test
-    void testShaclInferStepMissingInferredGraph() {
+    void testShaclInferStepMissingInferredGraph() throws MojoExecutionException {
         ShaclInferStep step = new ShaclInferStep();
-        Shapes shapes = new Shapes();
+        InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
+        InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
         shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        Data data = new Data();
         data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         Inferred inferred = new Inferred();
         step.setShapes(shapes);
         step.setData(data);
         step.setInferred(inferred);
-
-        assertThrows(
-                MojoExecutionException.class,
-                () -> step.execute(dataset, state),
-                "Should throw when inferred graph is missing");
+        step.execute(dataset, state);
     }
 
     @Test
     void testShaclInferStepNonExistentShapesFile() {
         ShaclInferStep step = new ShaclInferStep();
-        Shapes shapes = new Shapes();
+        InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
+        InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
         shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/nonexistent.ttl"));
-        Data data = new Data();
         data.addFile(makeFileParameterUnderTestOutputDir("test-data/data.ttl"));
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
@@ -220,9 +219,10 @@ public class PipelineStepsTests {
 
     @Test
     void testShaclInferStepEmptyData() throws MojoExecutionException, IOException {
-        Shapes shapes = new Shapes();
+        ShaclInferStep step = new ShaclInferStep();
+        InputsComponent<ShaclInferStep> shapes = new InputsComponent<>(step);
+        InputsComponent<ShaclInferStep> data = new InputsComponent<>(step);
         shapes.addFile(makeFileParameterUnderTestOutputDir("test-data/shapes.ttl"));
-        Data data = new Data();
         Inferred inferred = new Inferred();
         inferred.setGraph("inferred:graph");
 
@@ -236,7 +236,6 @@ public class PipelineStepsTests {
         shapesFile.getParentFile().mkdirs();
         Files.write(shapesFile.toPath(), shapesTtl.getBytes());
 
-        ShaclInferStep step = new ShaclInferStep();
         step.setShapes(shapes);
         step.setData(data);
         step.setInferred(inferred);
@@ -521,7 +520,7 @@ public class PipelineStepsTests {
         ForeachStep step = new ForeachStep();
         step.setVar("fileGraph");
         step.setValues(values);
-        step.setBody(bodyStep);
+        step.addBodyStep(bodyStep);
 
         step.execute(dataset, state);
 
@@ -550,7 +549,7 @@ public class PipelineStepsTests {
         bodyStep.setSparql(
                 "INSERT DATA { GRAPH <test:graph> { <http://example.org/s> <http://example.org/p> <http://example.org/o> } }");
         step.setValues(values);
-        step.setBody(bodyStep);
+        step.addBodyStep(bodyStep);
 
         assertThrows(
                 MojoExecutionException.class,
@@ -565,7 +564,7 @@ public class PipelineStepsTests {
         SparqlUpdateStep bodyStep = new SparqlUpdateStep();
         bodyStep.setSparql(
                 "INSERT DATA { GRAPH <test:graph> { <http://example.org/s> <http://example.org/p> <http://example.org/o> } }");
-        step.setBody(bodyStep);
+        step.addBodyStep(bodyStep);
 
         assertThrows(
                 MojoExecutionException.class,
@@ -603,7 +602,7 @@ public class PipelineStepsTests {
         ForeachStep step = new ForeachStep();
         step.setVar("fileGraph");
         step.setValues(values);
-        step.setBody(bodyStep);
+        step.addBodyStep(bodyStep);
 
         step.execute(dataset, state);
         assertTrue(dataset.isEmpty(), "Dataset should remain empty with no matching graphs");
@@ -692,11 +691,12 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/o"));
 
         StringBuilder result = new StringBuilder();
-        SparqlHelper.executeSparqlQueryWithVariables(
+        io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper.executeSparqlQueryWithVariables(
                 "SELECT ?s WHERE { GRAPH ?fileGraph { ?s ?p ?o } }",
                 dataset,
                 state.getMetadataGraph(),
-                new SparqlHelper.QueryResultProcessor() {
+                new io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper
+                        .QueryResultProcessor() {
                     @Override
                     public void processSelectResult(ResultSet rs) {
                         while (rs.hasNext()) {
@@ -725,11 +725,12 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/o"));
 
         boolean[] result = new boolean[1];
-        SparqlHelper.executeSparqlQueryWithVariables(
+        io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper.executeSparqlQueryWithVariables(
                 "ASK { GRAPH ?fileGraph { ?s ?p ?o } }",
                 dataset,
                 state.getMetadataGraph(),
-                new SparqlHelper.QueryResultProcessor() {
+                new io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper
+                        .QueryResultProcessor() {
                     @Override
                     public void processAskResult(boolean res) {
                         result[0] = res;
@@ -753,11 +754,12 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/o"));
 
         Model[] result = new Model[1];
-        SparqlHelper.executeSparqlQueryWithVariables(
+        io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper.executeSparqlQueryWithVariables(
                 "CONSTRUCT { ?s ?p ?o } WHERE { GRAPH ?fileGraph { ?s ?p ?o } }",
                 dataset,
                 state.getMetadataGraph(),
-                new SparqlHelper.QueryResultProcessor() {
+                new io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper
+                        .QueryResultProcessor() {
                     @Override
                     public void processConstructOrDescribeResult(Model res) {
                         result[0] = res;
@@ -777,11 +779,12 @@ public class PipelineStepsTests {
         assertThrows(
                 MojoExecutionException.class,
                 () ->
-                        SparqlHelper.executeSparqlQueryWithVariables(
-                                "INVALID QUERY",
-                                dataset,
-                                state.getMetadataGraph(),
-                                new SparqlHelper.QueryResultProcessor() {}),
+                        io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper
+                                .executeSparqlQueryWithVariables(
+                                        "INVALID QUERY",
+                                        dataset,
+                                        state.getMetadataGraph(),
+                                        new SparqlHelper.QueryResultProcessor() {}),
                 "Should throw for invalid SPARQL query");
     }
 
@@ -801,7 +804,7 @@ public class PipelineStepsTests {
         pipeline.setBaseDir(baseDir);
         List<Step> steps = new ArrayList<>();
         AddStep addStep = new AddStep();
-        addStep.addFile("target/rdfio/test-output/test-input.ttl");
+        addStep.getInputsComponent().addFile("target/rdfio/test-output/test-input.ttl");
         addStep.setToGraph("test:graph");
         SavepointStep savepointStep = new SavepointStep();
         savepointStep.setId("sp001");

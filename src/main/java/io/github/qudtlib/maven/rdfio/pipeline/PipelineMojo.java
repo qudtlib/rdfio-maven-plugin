@@ -57,9 +57,11 @@ public class PipelineMojo extends AbstractMojo {
             PipelineState state =
                     new PipelineState(
                             pipeline.getId(),
-                            pipeline.getMetadataGraph(),
                             pipeline.getBaseDir(),
-                            new File("target"));
+                            new File("target"),
+                            null,
+                            pipeline.getMetadataGraph(),
+                            null);
             state.setAllowLoadingFromSavepoint(!pipeline.isForceRun());
 
             int startIndex = -1;

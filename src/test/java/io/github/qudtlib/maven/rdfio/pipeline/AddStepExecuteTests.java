@@ -30,9 +30,11 @@ public class AddStepExecuteTests {
         state =
                 new PipelineState(
                         "test-pipeline",
-                        RDFIO.metadataGraph.toString(),
                         baseDir,
-                        new File("target/rdfio/test-output"));
+                        new File("target/rdfio/test-output"),
+                        null,
+                        null,
+                        null);
         // Ensure test RDF file exists
         File rdfFile = new File(baseDir, TEST_RDF_FILE);
         if (!rdfFile.exists()) {
@@ -188,14 +190,15 @@ public class AddStepExecuteTests {
                         .formatted(TEST_RDF_FILE);
         Xpp3Dom config = Xpp3DomBuilder.build(new java.io.StringReader(xmlConfig));
 
-        // Act & Assert: Expect exception
-        assertThrows(
-                ConfigurationParseException.class,
-                () -> {
-                    AddStep step = AddStep.parse(config);
-                    step.execute(dataset, state);
-                },
-                "Should throw when toGraph is missing");
+        AddStep step = AddStep.parse(config);
+        step.execute(dataset, state);
+        assertTrue(
+                dataset.getDefaultModel()
+                        .contains(
+                                ResourceFactory.createResource(EXPECTED_SUBJECT),
+                                ResourceFactory.createProperty(EXPECTED_PREDICATE),
+                                ResourceFactory.createResource(EXPECTED_OBJECT)),
+                "Default graph should contain the triple from the file");
     }
 
     @Test
@@ -209,14 +212,22 @@ public class AddStepExecuteTests {
                 """;
         Xpp3Dom config = Xpp3DomBuilder.build(new java.io.StringReader(xmlConfig));
 
-        // Act & Assert: Expect exception
-        assertThrows(
-                ConfigurationParseException.class,
-                () -> {
-                    AddStep step = AddStep.parse(config);
-                    step.execute(dataset, state);
-                },
-                "Should throw when neither files nor graphs are specified");
+        dataset.getDefaultModel()
+                .add(
+                        ResourceFactory.createResource(EXPECTED_SUBJECT),
+                        ResourceFactory.createProperty(EXPECTED_PREDICATE),
+                        ResourceFactory.createResource(EXPECTED_OBJECT));
+
+        AddStep step = AddStep.parse(config);
+        step.execute(dataset, state);
+
+        assertTrue(
+                dataset.getNamedModel("test:graph")
+                        .contains(
+                                ResourceFactory.createResource(EXPECTED_SUBJECT),
+                                ResourceFactory.createProperty(EXPECTED_PREDICATE),
+                                ResourceFactory.createResource(EXPECTED_OBJECT)),
+                "Graph test:graph should contain the triple from the default graph");
     }
 
     @Test
@@ -234,7 +245,7 @@ public class AddStepExecuteTests {
 
         // Act & Assert: Expect exception
         assertThrows(
-                PluginConfigurationExeception.class,
+                PipelineConfigurationExeception.class,
                 () -> step.execute(dataset, state),
                 "Should throw when the specified file does not exist");
     }
@@ -254,7 +265,7 @@ public class AddStepExecuteTests {
 
         // Act & Assert: Expect exception
         assertThrows(
-                PluginConfigurationExeception.class,
+                PipelineConfigurationExeception.class,
                 () -> step.execute(dataset, state),
                 "Should throw when the source graph does not exist");
     }

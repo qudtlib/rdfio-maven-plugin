@@ -4,7 +4,6 @@
     <steps>
         <add>
             <file>src/build/inference/inferApplicableUnits.ttl</file>
-            <toGraph>shapes:applicableUnits</toGraph>
         </add>
         <add>
             <file>src/main/rdf/validation/qudt-shacl-functions.ttl</file>

@@ -138,19 +138,14 @@ public class WriteStep implements Step {
             if (toFile != null) {
                 digest.update(toFile.getBytes(StandardCharsets.UTF_8));
             }
-            byte[] hashBytes = digest.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
+            return PipelineHelper.serializeMessageDigest(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
     }
 
     // WriteStep.java
-    public static WriteStep parse(Xpp3Dom config) throws MojoExecutionException {
+    public static WriteStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
                     """

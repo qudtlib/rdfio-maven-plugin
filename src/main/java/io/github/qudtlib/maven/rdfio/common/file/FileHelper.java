@@ -1,6 +1,6 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
-import io.github.qudtlib.maven.rdfio.pipeline.PluginConfigurationExeception;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineConfigurationExeception;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -90,11 +90,11 @@ public class FileHelper {
         for (File file : files) {
             if (!file.exists()) {
                 try {
-                    throw new PluginConfigurationExeception(
+                    throw new PipelineConfigurationExeception(
                             "Configured %s file does not exist: %s"
                                     .formatted(kind, file.getCanonicalPath()));
                 } catch (IOException e) {
-                    throw new PluginConfigurationExeception(
+                    throw new PipelineConfigurationExeception(
                             "Configured %s file does not exist: %s"
                                     .formatted(kind, file.getAbsolutePath()));
                 }

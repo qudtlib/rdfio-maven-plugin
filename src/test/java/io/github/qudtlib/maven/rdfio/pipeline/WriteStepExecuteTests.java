@@ -36,7 +36,7 @@ public class WriteStepExecuteTests {
         baseDir.mkdirs();
         workBaseDir.mkdirs();
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, RDFIO.metadataGraph.toString(), baseDir, workBaseDir);
+        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
         testOutputBase = new File(workBaseDir, "test-output");
         testOutputBase.mkdirs();
     }

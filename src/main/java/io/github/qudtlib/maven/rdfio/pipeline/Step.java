@@ -12,11 +12,13 @@ public interface Step {
      * @param state
      * @throws MojoExecutionException
      */
-    default void executeAndWrapException(Dataset dataset, PipelineState state) throws MojoExecutionException {
+    default void executeAndWrapException(Dataset dataset, PipelineState state)
+            throws MojoExecutionException {
         try {
             execute(dataset, state);
         } catch (RuntimeException e) {
-            throw new MojoExecutionException("Error executing %s step", e);
+            throw new MojoExecutionException(
+                    "Error executing <%s> step: %s".formatted(getElementName(), e.getMessage()), e);
         }
     }
 

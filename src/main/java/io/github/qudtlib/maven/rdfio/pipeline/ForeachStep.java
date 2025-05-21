@@ -40,7 +40,7 @@ public class ForeachStep implements Step {
         return body;
     }
 
-    public void setBody(Step step) {
+    public void addBodyStep(Step step) {
         this.body.add(step);
     }
 
@@ -93,22 +93,60 @@ public class ForeachStep implements Step {
                 subPreviousHash = subStep.calculateHash(subPreviousHash, state);
                 digest.update(subPreviousHash.getBytes(StandardCharsets.UTF_8));
             }
-            byte[] hashBytes = digest.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
+            return PipelineHelper.serializeMessageDigest(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
     }
 
     // ForeachStep.java
-    public static ForeachStep parse(Xpp3Dom config) throws MojoExecutionException {
+    public static ForeachStep parse(Xpp3Dom config) {
+        ForeachStep step = new ForeachStep();
         if (config == null) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
+                            Foreach step configuration is missing.
+                            %s"""
+                            .formatted(step.usage()));
+        }
+
+        ParsingHelper.requiredStringChild(config, "var", step::setVar, step::usage);
+        ParsingHelper.requiredDomChild(
+                config, "values", Values::parse, step::setValues, step::usage);
+
+        Xpp3Dom bodyDom = config.getChild("body");
+        if (bodyDom == null || bodyDom.getChildren().length == 0) {
+            throw new ConfigurationParseException(
+                    """
+                            Foreach step requires a <body> with a single step.
+                            %s"""
+                            .formatted(step.usage()));
+        }
+        for (Xpp3Dom bodyStepConfig : bodyDom.getChildren()) {
+            String bodyStepType = bodyStepConfig.getName();
+            Step bodyStep =
+                    switch (bodyStepType) {
+                        case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyStepConfig);
+                        case "add" -> AddStep.parse(bodyStepConfig);
+                        case "shaclInfer" -> ShaclInferStep.parse(bodyStepConfig);
+                        case "write" -> WriteStep.parse(bodyStepConfig);
+                        case "foreach" -> ForeachStep.parse(bodyStepConfig);
+                        default ->
+                                throw new ConfigurationParseException(
+                                        "Invalid step type in foreach <body>: "
+                                                + bodyStepType
+                                                + ".\n"
+                                                + "Usage: Use one of: <add>, <sparqlUpdate>, <shaclInfer>, <write>, <foreach>.\n"
+                                                + "Example: <body><sparqlUpdate><sparql>...</sparql></sparqlUpdate></body>");
+                    };
+            step.addBodyStep(bodyStep);
+        }
+
+        return step;
+    }
+
+    public String usage() {
+        return """
                             Foreach step configuration is missing.
                             Usage: Provide a <foreach> element with <var>, <values>, and <body>.
                             Example:
@@ -116,64 +154,6 @@ public class ForeachStep implements Step {
                                 <var>fileGraph</var>
                                 <values><graphs><include>vocab:*</include></graphs></values>
                                 <body><sparqlUpdate>...</sparqlUpdate></body>
-                            </foreach>""");
-        }
-
-        ForeachStep step = new ForeachStep();
-        Xpp3Dom varDom = config.getChild("var");
-        if (varDom == null || varDom.getValue() == null || varDom.getValue().trim().isEmpty()) {
-            throw new MojoExecutionException(
-                    """
-                            Foreach step requires a non-empty <var>.
-                            Usage: Specify the variable name for iteration.
-                            Example: <var>fileGraph</var>""");
-        }
-        step.setVar(varDom.getValue().trim());
-
-        Xpp3Dom valuesDom = config.getChild("values");
-        if (valuesDom == null) {
-            throw new MojoExecutionException(
-                    """
-                            Foreach step requires a <values> element.
-                            Usage: Specify the values to iterate over via <graphs>.
-                            Example: <values><graphs><include>vocab:*</include></graphs></values>""");
-        }
-        step.setValues(Values.parse(valuesDom));
-
-        Xpp3Dom bodyDom = config.getChild("body");
-        if (bodyDom == null || bodyDom.getChildren().length == 0) {
-            throw new MojoExecutionException(
-                    """
-                            Foreach step requires a <body> with a single step.
-                            Usage: Provide a single step (e.g., <sparqlUpdate>) inside <body>.
-                            Example: <body><sparqlUpdate><sparql>...</sparql></sparqlUpdate></body>""");
-        }
-        Xpp3Dom[] bodyChildren = bodyDom.getChildren();
-        if (bodyChildren.length > 1) {
-            throw new MojoExecutionException(
-                    """
-                            Foreach step <body> must contain exactly one step.
-                            Usage: Provide a single step inside <body>.
-                            Example: <body><sparqlUpdate><sparql>...</sparql></sparqlUpdate></body>""");
-        }
-        String bodyStepType = bodyChildren[0].getName();
-        Step bodyStep =
-                switch (bodyStepType) {
-                    case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyChildren[0]);
-                    case "add" -> AddStep.parse(bodyChildren[0]);
-                    case "shaclInfer" -> ShaclInferStep.parse(bodyChildren[0]);
-                    case "write" -> WriteStep.parse(bodyChildren[0]);
-                    case "foreach" -> ForeachStep.parse(bodyChildren[0]);
-                    default ->
-                            throw new MojoExecutionException(
-                                    "Invalid step type in foreach <body>: "
-                                            + bodyStepType
-                                            + ".\n"
-                                            + "Usage: Use one of: <add>, <sparqlUpdate>, <shaclInfer>, <write>, <foreach>.\n"
-                                            + "Example: <body><sparqlUpdate><sparql>...</sparql></sparqlUpdate></body>");
-                };
-        step.setBody(bodyStep);
-
-        return step;
+                            </foreach>""";
     }
 }

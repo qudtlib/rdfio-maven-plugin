@@ -1,7 +1,7 @@
 package io.github.qudtlib.maven.rdfio.filter;
 
-import static io.github.qudtlib.maven.rdfio.filter.SparqlHelper.addPrefixes;
-import static io.github.qudtlib.maven.rdfio.filter.SparqlHelper.withLineNumbers;
+import static io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper.addPrefixes;
+import static io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper.withLineNumbers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

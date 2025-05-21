@@ -69,6 +69,24 @@ public class ParsingHelper {
         domChildren(config, name, childParser, childSetter, usageSupplier, 1, 1);
     }
 
+    public static <S extends Step, T extends StepComponent<S>> void requiredDomComponent(
+            Xpp3Dom config,
+            Function<Xpp3Dom, T> componentParser,
+            Consumer<T> componentSetter,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        handleDomComponentInternal(config, componentParser, componentSetter, usageSupplier, true);
+    }
+
+    public static <S extends Step, T extends StepComponent<S>> void optionalDomComponent(
+            Xpp3Dom config,
+            Function<Xpp3Dom, T> componentParser,
+            Consumer<T> componentSetter,
+            Supplier<String> usageSupplier)
+            throws ConfigurationParseException {
+        handleDomComponentInternal(config, componentParser, componentSetter, usageSupplier, false);
+    }
+
     public static <T> void optionalDomChild(
             Xpp3Dom config,
             String name,
@@ -232,5 +250,20 @@ public class ParsingHelper {
             count++;
         }
         return count;
+    }
+
+    private static <S extends Step, T extends StepComponent<S>> void handleDomComponentInternal(
+            Xpp3Dom config,
+            Function<Xpp3Dom, T> componentParser,
+            Consumer<T> componentSetter,
+            Supplier<String> usageSupplier,
+            boolean required)
+            throws ConfigurationParseException {
+        T component = componentParser.apply(config);
+        if (required && component == null) {
+            throw new ConfigurationParseException(
+                    "Required component not present\n%s".formatted(usageSupplier.get()));
+        }
+        componentSetter.accept(component);
     }
 }

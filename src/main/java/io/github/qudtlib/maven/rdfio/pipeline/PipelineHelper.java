@@ -3,6 +3,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -102,9 +103,18 @@ public class PipelineHelper {
     public static void ensureGraphsExist(Dataset dataset, List<String> graphs, String kind) {
         for (String graph : graphs) {
             if (!dataset.containsNamedModel(graph)) {
-                throw new PluginConfigurationExeception(
+                throw new PipelineConfigurationExeception(
                         "Configured %s graph %s does not exist in dataset".formatted(kind, graph));
             }
         }
+    }
+
+    static String serializeMessageDigest(MessageDigest digest) {
+        byte[] hashBytes = digest.digest();
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 }

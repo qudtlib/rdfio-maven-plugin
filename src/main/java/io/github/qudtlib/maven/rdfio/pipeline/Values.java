@@ -1,6 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
@@ -16,9 +15,9 @@ public class Values {
     }
 
     // Values.java
-    public static Values parse(Xpp3Dom config) throws MojoExecutionException {
+    public static Values parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
                             Values configuration is missing.
                             Usage: Provide a <values> element with a <graphs> selection.
@@ -28,7 +27,7 @@ public class Values {
         Values values = new Values();
         Xpp3Dom graphsDom = config.getChild("graphs");
         if (graphsDom == null) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
                             Values requires a <graphs> element.
                             Usage: Specify a graph selection via <graphs>.

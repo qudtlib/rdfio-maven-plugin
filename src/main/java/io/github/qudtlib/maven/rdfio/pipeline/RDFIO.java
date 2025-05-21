@@ -23,6 +23,8 @@ public final class RDFIO {
     public static final String VARIABLE_PREFIX = NS + "variables/";
 
     public static final Resource metadataGraph = ResourceFactory.createResource(NS + "metadata");
+    public static final Resource shaclFunctionsGraph =
+            ResourceFactory.createResource(NS + "shaclFunctions");
 
     // Private constructor to prevent instantiation
     private RDFIO() {}
