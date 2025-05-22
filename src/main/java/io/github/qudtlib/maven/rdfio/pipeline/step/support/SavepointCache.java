@@ -1,85 +1,82 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import java.util.Objects;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 
 public class SavepointCache {
-    private final File baseDir;
+    public static final String HASH_FILE_NAME = "hash.txt";
+    public static final String DATASET_FILE_NAME = "dataset.trig";
+    private final RelativePath baseDir;
 
-    public SavepointCache(File baseDir, String pipelineId) {
-        Objects.requireNonNull(pipelineId, "Cannot create savepoint cache: pipelineId is null");
-        this.baseDir =
-                baseDir.toPath()
-                        .resolve(Path.of("rdfio/pipeline/" + pipelineId + "/savepoint"))
-                        .toFile();
+    public SavepointCache(RelativePath baseDir) {
+        this.baseDir = baseDir;
     }
 
-    public boolean isValid(String id, String expectedHash, String pipelineId) {
+    public boolean isValid(String id, String expectedHash, PipelineState state) {
         if (id == null) {
             return false;
         }
         if (expectedHash == null) {
             return false;
         }
-        if (pipelineId == null) {
-            return false;
+        if (state == null) {
+            throw new IllegalArgumentException("state cannot be null");
         }
-        File savepointDir = new File(baseDir, id);
-        File hashFile = new File(savepointDir, "hash.txt");
+        RelativePath savepointDir = getSavepointDir(id);
+        RelativePath hashFile = getHashFile(savepointDir);
         if (!savepointDir.exists() || !hashFile.exists()) {
             return false;
         }
-        try {
-            String storedHash = Files.readString(hashFile.toPath(), StandardCharsets.UTF_8).trim();
-            return storedHash.equals(expectedHash);
-        } catch (IOException e) {
-            return false;
-        }
+        String storedHash = state.files().readText(hashFile).trim();
+        return storedHash.equals(expectedHash);
     }
 
-    public void load(String id, Dataset dataset) {
+    public void load(String id, Dataset dataset, PipelineState state) {
         Objects.requireNonNull(id, "cannot load savepoint: id is null");
         Objects.requireNonNull(dataset, "cannot load savepoint into dataset: dataset is null");
-        File datasetFile = new File(getSavepointDir(id), "dataset.trig");
+        RelativePath datasetFile = getDatasetFile(getSavepointDir(id));
         if (datasetFile.exists()) {
             PipelineHelper.clearDataset(dataset);
-            try {
-                RDFDataMgr.read(dataset, new FileInputStream(datasetFile), Lang.TRIG);
-            } catch (FileNotFoundException e) {
-                throw new RuntimeException("Error reading savepoint file " + datasetFile, e);
-            }
+            state.files().readRdf(datasetFile, dataset);
         }
     }
 
-    public void save(String id, Dataset dataset, String hash) {
+    public void save(String id, Dataset dataset, String hash, PipelineState state) {
         Objects.requireNonNull(id, "cannot save savepoint: id is null");
         Objects.requireNonNull(dataset, "cannot save savepoint into dataset: dataset is null");
         Objects.requireNonNull(hash, "cannot save savepoint: hash is null");
-        File savepointDir = new File(baseDir, id);
-        savepointDir.mkdirs();
-        File hashFile = new File(savepointDir, "hash.txt");
-        File datasetFile = new File(savepointDir, "dataset.trig");
-        try {
-            Files.write(hashFile.toPath(), hash.getBytes(StandardCharsets.UTF_8));
-            RDFDataMgr.write(new FileOutputStream(datasetFile), dataset, Lang.TRIG);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save savepoint: " + id, e);
-        }
+        RelativePath savepointDir = getSavepointDir(id);
+        state.files().mkdirs(savepointDir);
+        RelativePath hashFile = getHashFile(savepointDir);
+        RelativePath datasetFile = getDatasetFile(savepointDir);
+        state.files().writeRdf(datasetFile, dataset);
+        state.files().writeText(hashFile, hash);
     }
 
-    public File getBaseDir() {
+    public RelativePath getHashFile(String savepointId) {
+        return getHashFile(getSavepointDir(savepointId));
+    }
+
+    public RelativePath getDatasetFile(String savepointId) {
+        return getDatasetFile(getSavepointDir(savepointId));
+    }
+
+    public RelativePath getBaseDir() {
         return this.baseDir;
     }
 
-    public File getSavepointDir(String savepointId) {
-        Objects.requireNonNull(savepointId, "Cannot make savepoint dir name: savepointId is null");
-        return new File(this.baseDir, savepointId);
+    public RelativePath getSavepointDir(String savepointId) {
+        return baseDir.subDir(savepointId);
+    }
+
+    private static RelativePath getHashFile(RelativePath savepointDir) {
+        return savepointDir.subFile(HASH_FILE_NAME);
+    }
+
+    private static RelativePath getDatasetFile(RelativePath savepointDir) {
+        return savepointDir.subFile(DATASET_FILE_NAME);
     }
 }

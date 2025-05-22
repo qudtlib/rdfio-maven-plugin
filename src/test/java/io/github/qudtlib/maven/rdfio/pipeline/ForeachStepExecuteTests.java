@@ -3,6 +3,8 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.common.log.StdoutLog;
 import io.github.qudtlib.maven.rdfio.pipeline.step.AddStep;
 import io.github.qudtlib.maven.rdfio.pipeline.step.ForeachStep;
 import io.github.qudtlib.maven.rdfio.pipeline.step.SparqlUpdateStep;
@@ -24,7 +26,6 @@ public class ForeachStepExecuteTests {
     private Dataset dataset;
     private PipelineState state;
     private File baseDir;
-    private File workBaseDir;
     private String pipelineId;
     private static final String TEST_RDF_FILE = "src/test/resources/data.ttl";
     private static final String EXPECTED_SUBJECT = "http://example.org/s";
@@ -45,12 +46,18 @@ public class ForeachStepExecuteTests {
     void setUp() throws Exception {
         dataset = DatasetFactory.create();
         baseDir = new File(".");
-        workBaseDir = new File("target");
+        RelativePath workBaseDir = new RelativePath(baseDir, "target");
         baseDir.mkdirs();
-        workBaseDir.mkdirs();
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
-
+        state =
+                new PipelineState(
+                        pipelineId,
+                        baseDir,
+                        workBaseDir.subDir("rdfio").subDir("pipelines"),
+                        new StdoutLog(),
+                        null,
+                        null);
+        state.files().mkdirs(workBaseDir);
         // Ensure test RDF file exists
         File rdfFile = new File(baseDir, TEST_RDF_FILE);
         if (!rdfFile.exists()) {

@@ -186,7 +186,7 @@ public class ParsingHelper {
         if (minCount > 0 && count < minCount) {
             throw new ConfigurationParseException(
                     String.format(
-                            "At least %d <%s> subelements are allowed, but encountered %d.\n%s",
+                            "At least %d <%s> subelements are required, but encountered %d.\n%s",
                             minCount, name, count, usageSupplier.get()));
         }
         if (maxCount > 0 && count > maxCount) {

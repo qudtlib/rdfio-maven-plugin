@@ -3,13 +3,14 @@ package io.github.qudtlib.maven.rdfio.pipeline.step;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
-import io.github.qudtlib.maven.rdfio.pipeline.*;
+import io.github.qudtlib.maven.rdfio.pipeline.FileAccess;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.Inferred;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -17,8 +18,6 @@ import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.topbraid.shacl.rules.RuleUtil;
@@ -214,11 +213,8 @@ public class ShaclInferStep implements Step {
                 dataset.getDefaultModel().add(inferredModel);
             }
             if (inferred != null && inferred.getFile() != null) {
-                try (FileOutputStream out = new FileOutputStream(inferred.getFile())) {
-                    RDFDataMgr.write(out, inferredModel, Lang.TTL);
-                } catch (Exception e) {
-                    throw new MojoExecutionException("Failed to write inferred file", e);
-                }
+                RelativePath path = state.files().make(inferred.getFile());
+                state.files().writeRdf(path, inferredModel);
             }
             state.getPrecedingSteps().add(this);
         } catch (RuntimeException e) {

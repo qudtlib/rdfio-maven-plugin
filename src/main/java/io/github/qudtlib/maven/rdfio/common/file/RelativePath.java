@@ -146,4 +146,33 @@ public class RelativePath {
     public Resource getRelativePathAsResource() {
         return ResourceFactory.createResource(getRelativePath());
     }
+
+    public RelativePath subDir(String dirName) {
+        if (exists() && !isDirectory()) {
+            throw new RelativePathException(
+                    "Cannot create subpath of %s: not a directory".formatted(this));
+        }
+        checkDirOrFileName(dirName);
+        return new RelativePath(baseDir, getRelativePath() + "/" + dirName);
+    }
+
+    private static void checkDirOrFileName(String dirName) {
+        if (dirName == null || dirName.isBlank())
+            throw new RelativePathException("dirName for new director cannot be null or blank");
+        if (dirName.matches(".*[/\\\\:?$%&() ].*")
+                || dirName.contains("..")
+                || dirName.startsWith(".")) {
+            throw new RelativePathException(
+                    "dirName for new director cannot contain '/', '\\', ':','?','%','&','(',')',' ', or '..', or start with '.'");
+        }
+    }
+
+    public RelativePath subFile(String fileName) {
+        if (this.exists() && !isDirectory()) {
+            throw new RelativePathException(
+                    "Cannot create subpath of %s: not a directory".formatted(this));
+        }
+        checkDirOrFileName(fileName);
+        return new RelativePath(baseDir, getRelativePath() + "/" + fileName);
+    }
 }

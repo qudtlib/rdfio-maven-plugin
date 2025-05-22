@@ -34,7 +34,7 @@ public class AddStepExecuteTests {
                 new PipelineState(
                         "test-pipeline",
                         baseDir,
-                        new File("target/rdfio/test-output"),
+                        new RelativePath(baseDir, "pipelines"),
                         null,
                         null,
                         null);

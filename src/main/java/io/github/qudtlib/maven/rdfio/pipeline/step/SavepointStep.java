@@ -3,6 +3,7 @@ package io.github.qudtlib.maven.rdfio.pipeline.step;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.SavepointCache;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -39,7 +40,7 @@ public class SavepointStep implements Step {
             throw new MojoExecutionException("Savepoint id is required");
         }
         SavepointCache cache = state.getSavepointCache();
-        return cache.isValid(id, currentHash, state.getPipelineId());
+        return cache.isValid(id, currentHash, state);
     }
 
     @Override
@@ -58,12 +59,13 @@ public class SavepointStep implements Step {
         }
         SavepointCache cache = state.getSavepointCache();
         String currentHash = calculateHash(state.getPreviousStepHash(), state);
-        if (state.isAllowLoadingFromSavepoint()
-                && cache.isValid(id, currentHash, state.getPipelineId())) {
-            cache.load(id, dataset);
-            state.setAllowLoadingFromSavepoint(false);
+        if (cache.isValid(id, currentHash, state)) {
+            if (state.isAllowLoadingFromSavepoint()) {
+                cache.load(id, dataset, state);
+                state.setAllowLoadingFromSavepoint(false);
+            }
         } else {
-            cache.save(id, dataset, currentHash);
+            cache.save(id, dataset, currentHash, state);
             state.getPrecedingSteps().add(this);
         }
     }
@@ -85,9 +87,9 @@ public class SavepointStep implements Step {
     }
 
     // SavepointStep.java
-    public static SavepointStep parse(Xpp3Dom config) throws MojoExecutionException {
+    public static SavepointStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
                             Savepoint step configuration is missing.
                             Usage: Provide a <savepoint> element with a required <id> and optional <enabled>.
@@ -101,7 +103,7 @@ public class SavepointStep implements Step {
         SavepointStep step = new SavepointStep();
         Xpp3Dom idDom = config.getChild("id");
         if (idDom == null || idDom.getValue() == null || idDom.getValue().trim().isEmpty()) {
-            throw new MojoExecutionException(
+            throw new ConfigurationParseException(
                     """
                             Savepoint step requires a non-empty <id>.
                             Usage: Specify a unique identifier for the savepoint.

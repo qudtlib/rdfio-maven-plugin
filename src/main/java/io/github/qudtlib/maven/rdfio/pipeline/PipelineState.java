@@ -27,7 +27,7 @@ public class PipelineState {
     private List<Step> precedingSteps = new ArrayList<>();
     private String previousStepHash = "";
     private String pipelineId;
-    private File outputBaseDir;
+    private RelativePath pipelineWorkDir;
     private Log log;
     private Files files;
     private PipelineState.Variables variables;
@@ -35,17 +35,18 @@ public class PipelineState {
     public PipelineState(
             String pipelineId,
             File baseDir,
-            File outputBaseDir,
+            RelativePath pipelinesWorkDir,
             Log log,
             String metadataGraph,
             String shaclFunctionsGraph) {
         Objects.requireNonNull(pipelineId, "Cannot create PipelineState: pipelineId is null");
         Objects.requireNonNull(baseDir, "Cannot create PipelineState: baseDir is null");
-        Objects.requireNonNull(outputBaseDir, "Cannot create PipelineState: outputBaseDir is null");
+        Objects.requireNonNull(
+                pipelinesWorkDir, "Cannot create PipelineState: outputBaseDir is null");
         this.baseDir = baseDir;
-        this.outputBaseDir = outputBaseDir;
+        this.pipelineWorkDir = pipelinesWorkDir.subDir(pipelineId);
         this.pipelineId = pipelineId;
-        this.savepointCache = new SavepointCache(outputBaseDir, pipelineId);
+        this.savepointCache = new SavepointCache(this.pipelineWorkDir.subDir("savepoints"));
         this.log = Optional.ofNullable(log).orElse(new StdoutLog());
         this.metadataGraph =
                 Optional.ofNullable(metadataGraph).orElse(RDFIO.metadataGraph.toString());
@@ -88,8 +89,8 @@ public class PipelineState {
         return baseDir;
     }
 
-    public File getOutputBaseDir() {
-        return outputBaseDir;
+    public RelativePath getPipelineWorkDir() {
+        return pipelineWorkDir;
     }
 
     public Log getLog() {
@@ -112,12 +113,18 @@ public class PipelineState {
         return pipelineId;
     }
 
-    public void requireUnderConfiguredDirs(File outputFile) throws ForbiddenFilePathException {
-        if (!FileHelper.isUnderDirectory(baseDir, outputFile)
-                && !FileHelper.isUnderDirectory(outputBaseDir, outputFile)) {
+    public void requireUnderBaseDir(File file) throws ForbiddenFilePathException {
+        if (!FileHelper.isUnderDirectory(baseDir, file)) {
             throw new ForbiddenFilePathException(
-                    "Cannot write file %s as it is neither under baseDir %s nor under baseOutputDir %s"
-                            .formatted(outputFile, baseDir, outputBaseDir));
+                    "Cannot access file %s as it is not under baseDir %s"
+                            .formatted(file, baseDir.getAbsolutePath()));
+        }
+    }
+
+    public void requireUnderBaseDir(RelativePath file) throws ForbiddenFilePathException {
+        if (!FileHelper.isUnderDirectory(baseDir, file.resolve())) {
+            throw new ForbiddenFilePathException(
+                    "Cannot access file %s as it is not under baseDir %s".formatted(file, baseDir));
         }
     }
 
@@ -132,7 +139,7 @@ public class PipelineState {
         }
 
         public RelativePath makeRelativeToOutputBase(String relativeToOutputBase) {
-            RelativePath rto = new RelativePath(outputBaseDir, relativeToOutputBase);
+            RelativePath rto = new RelativePath(pipelineWorkDir.resolve(), relativeToOutputBase);
             return rto.rebase(baseDir);
         }
 
@@ -142,6 +149,10 @@ public class PipelineState {
 
         public void readRdf(RelativePath path, Model model) throws FileAccessException {
             FileAccess.readRdf(path, model, PipelineState.this);
+        }
+
+        public void readRdf(RelativePath path, Dataset dataset) throws FileAccessException {
+            FileAccess.readRdf(path, dataset, PipelineState.this);
         }
 
         public void writeRdf(RelativePath path, Dataset dataset) throws FileAccessException {
@@ -168,8 +179,12 @@ public class PipelineState {
             return FileAccess.exists(path, PipelineState.this);
         }
 
-        public boolean createParentFolder(RelativePath outputPath) {
-            return FileAccess.createParentFolder(outputPath, PipelineState.this);
+        public boolean createParentFolder(RelativePath path) {
+            return FileAccess.createParentFolder(path, PipelineState.this);
+        }
+
+        public boolean mkdirs(RelativePath path) {
+            return FileAccess.mkdirs(path, PipelineState.this);
         }
     }
 

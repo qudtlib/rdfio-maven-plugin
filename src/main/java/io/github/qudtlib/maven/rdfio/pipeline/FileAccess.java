@@ -35,6 +35,19 @@ public class FileAccess {
         }
     }
 
+    public static void readRdf(RelativePath path, Dataset dataset, PipelineState state)
+            throws FileAccessException {
+        File file = validatePath(path, state);
+        FileHelper.ensureFilesExist(List.of(file), "input");
+        state.getLog().debug("Reading RDF from: " + file.getAbsolutePath());
+        try (FileInputStream fis = new FileInputStream(file)) {
+            RDFDataMgr.read(
+                    dataset, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TRIG));
+        } catch (IOException e) {
+            throw new FileAccessException("Failed to read RDF file: " + file, e);
+        }
+    }
+
     public static void readRdf(List<RelativePath> paths, Model model, PipelineState state)
             throws FileAccessException {
         for (RelativePath path : paths) {
@@ -131,9 +144,25 @@ public class FileAccess {
 
     public static boolean createParentFolder(RelativePath path, PipelineState state) {
         File parent = path.resolve().getParentFile();
+        if (parent.exists()) {
+            return false;
+        }
         try {
-            state.requireUnderConfiguredDirs(parent);
+            state.requireUnderBaseDir(parent);
             return parent.mkdirs();
+        } catch (FileAccessException e) {
+            throw new ForbiddenFilePathException(e);
+        }
+    }
+
+    public static boolean mkdirs(RelativePath path, PipelineState pipelineState) {
+        File dir = validatePath(path, pipelineState);
+        if (path.exists() && !path.isDirectory()) {
+            throw new FileAccessException("Cannot mkdirs: %s is not a directory".formatted(path));
+        }
+        try {
+            pipelineState.requireUnderBaseDir(dir);
+            return dir.mkdirs();
         } catch (FileAccessException e) {
             throw new ForbiddenFilePathException(e);
         }
@@ -142,7 +171,7 @@ public class FileAccess {
     private static File validatePath(RelativePath path, PipelineState state)
             throws FileAccessException {
         File file = path.resolve();
-        state.requireUnderConfiguredDirs(file);
+        state.requireUnderBaseDir(file);
         return file;
     }
 

@@ -1,15 +1,16 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.SparqlUpdateStep;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -24,22 +25,27 @@ import org.junit.jupiter.api.Test;
 public class SparqlUpdateStepExecuteTests {
     private Dataset dataset;
     private PipelineState state;
-    private File baseDir;
-    private File workBaseDir;
-    private File testOutputBase;
+    private RelativePath testOutputBase;
     private String pipelineId;
 
     @BeforeEach
     void setUp() {
         dataset = DatasetFactory.create();
-        baseDir = new File(".");
-        workBaseDir = new File("target");
+        File baseDir = new File(".");
         baseDir.mkdirs();
-        workBaseDir.mkdirs();
+        RelativePath workBaseDir = new RelativePath(baseDir, "target");
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
-        testOutputBase = new File(workBaseDir, "test-output");
-        testOutputBase.mkdirs();
+        state =
+                new PipelineState(
+                        pipelineId,
+                        baseDir,
+                        workBaseDir.subDir("rdfio").subDir("pipelines"),
+                        null,
+                        null,
+                        null);
+        testOutputBase = workBaseDir.subDir("test-output");
+        state.files().mkdirs(workBaseDir);
+        state.files().mkdirs(testOutputBase);
     }
 
     @Test
@@ -75,9 +81,8 @@ public class SparqlUpdateStepExecuteTests {
     void testExecuteWithValidFileSparql() throws Exception {
         String sparqlContent =
                 "INSERT DATA { GRAPH <test:graph> { <http://example.org/s> <http://example.org/p> <http://example.org/o> } }";
-        File sparqlFile = new File(testOutputBase, "update.rq");
-        Files.write(sparqlFile.toPath(), sparqlContent.getBytes(StandardCharsets.UTF_8));
-
+        RelativePath sparqlFile = testOutputBase.subFile("update.rq");
+        state.files().writeText(sparqlFile, sparqlContent);
         String xml =
                 """
                 <sparqlUpdate>
@@ -179,9 +184,8 @@ public class SparqlUpdateStepExecuteTests {
 
     @Test
     void testExecuteWithEmptyFile() throws Exception {
-        File sparqlFile = new File(testOutputBase, "empty.rq");
-        Files.write(sparqlFile.toPath(), "".getBytes(StandardCharsets.UTF_8));
-
+        RelativePath sparqlFile = testOutputBase.subFile("empty.rq");
+        state.files().writeText(sparqlFile, "");
         String xml =
                 """
                 <sparqlUpdate>

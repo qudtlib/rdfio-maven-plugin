@@ -9,16 +9,12 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.WriteStep;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
@@ -29,21 +25,27 @@ public class WriteStepExecuteTests {
     private Dataset dataset;
     private PipelineState state;
     private File baseDir;
-    private File workBaseDir;
-    private File testOutputBase;
+    private RelativePath testOutputBase;
     private String pipelineId;
 
     @BeforeEach
     void setUp() {
         dataset = DatasetFactory.create();
         baseDir = new File(".");
-        workBaseDir = new File("target");
         baseDir.mkdirs();
-        workBaseDir.mkdirs();
+        RelativePath workBaseDir = new RelativePath(baseDir, "target");
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
-        testOutputBase = new File(workBaseDir, "test-output");
-        testOutputBase.mkdirs();
+        state =
+                new PipelineState(
+                        pipelineId,
+                        baseDir,
+                        workBaseDir.subDir("rdfio").subDir("pipelines"),
+                        null,
+                        null,
+                        null);
+        testOutputBase = workBaseDir.subDir("test-output");
+        state.files().mkdirs(testOutputBase);
+        state.files().mkdirs(workBaseDir);
     }
 
     @Test
@@ -105,9 +107,9 @@ public class WriteStepExecuteTests {
         step.execute(dataset, state);
 
         // Verify written file
-        File outputFile = new File(testOutputBase, "custom-output.ttl");
+        RelativePath outputFile = testOutputBase.subFile("custom-output.ttl");
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -271,10 +273,10 @@ public class WriteStepExecuteTests {
         step.execute(dataset, state);
 
         // Verify written file and directory
-        File outputFile = new File(testOutputBase, "new-dir/output.ttl");
-        assertTrue(outputFile.exists(), "Output file should be created");
+        RelativePath outputFile = testOutputBase.subDir("new-dir").subFile("custom-output.ttl");
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
+        assertTrue(outputFile.exists(), "Output file should be created");
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -321,11 +323,11 @@ public class WriteStepExecuteTests {
         WriteStep step = WriteStep.parse(config);
 
         // Create existing file with different content
-        File outputFile = new File(testOutputBase, "overwrite.ttl");
-        Files.write(
-                outputFile.toPath(),
-                "<http://example.org/old> <http://example.org/p> <http://example.org/o> ."
-                        .getBytes());
+        RelativePath outputFile = testOutputBase.subFile("overwrite.ttl");
+        state.files()
+                .writeText(
+                        outputFile,
+                        "<http://example.org/old> <http://example.org/p> <http://example.org/o> .");
 
         // Setup dataset
         Model model = dataset.getNamedModel("test:graph");
@@ -338,7 +340,7 @@ public class WriteStepExecuteTests {
 
         // Verify file overwritten
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -413,10 +415,8 @@ public class WriteStepExecuteTests {
 
         // Verify written file in TRIG format
         Dataset writtenDataset = DatasetFactory.create();
-        RDFDataMgr.read(
-                writtenDataset,
-                new FileInputStream(new File(testOutputBase, "output.trig")),
-                Lang.TRIG);
+        RelativePath file = testOutputBase.subFile("output.trig");
+        state.files().readRdf(file, writtenDataset);
         Model writtenModel = writtenDataset.getNamedModel("test:graph");
         assertTrue(
                 writtenModel.contains(

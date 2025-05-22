@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pipeline>
-    <id>test-pipeline</id>
-    <steps>
-        <add>
-            <file>src/test/resources/data.ttl</file>
-            <toGraph>test:graph</toGraph>
-        </add>
-        <savepoint>
-            <id>sp001</id>
-        </savepoint>
-        <sparqlUpdate>
-            <sparql>INSERT DATA { GRAPH &lt;test:graph&gt; { &lt;http://example.org/s2&gt; &lt;http://example.org/p2&gt; &lt;http://example.org/o2&gt; } }</sparql>
-        </sparqlUpdate>
-        <savepoint>
-            <id>sp002</id>
-        </savepoint>
-    </steps>
-</pipeline>
+<configuration>
+    <pipeline>
+        <id>test-pipeline</id>
+        <steps>
+            <add>
+                <file>src/test/resources/data.ttl</file>
+                <toGraph>test:graph</toGraph>
+            </add>
+            <savepoint>
+                <id>sp001</id>
+            </savepoint>
+            <sparqlUpdate>
+                <sparql>INSERT DATA { GRAPH &lt;test:graph&gt; { &lt;http://example.org/s2&gt; &lt;http://example.org/p2&gt; &lt;http://example.org/o2&gt; } }</sparql>
+            </sparqlUpdate>
+            <savepoint>
+                <id>sp002</id>
+            </savepoint>
+        </steps>
+    </pipeline>
+</configuration>

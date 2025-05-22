@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.step.ShaclInferStep;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -24,21 +25,27 @@ public class ShaclInferStepExecuteTests {
     private Dataset dataset;
     private PipelineState state;
     private File baseDir;
-    private File workBaseDir;
-    private File testOutputBase;
+    private RelativePath testOutputBase;
     private String pipelineId;
 
     @BeforeEach
     void setUp() {
         dataset = DatasetFactory.create();
         baseDir = new File(".");
-        workBaseDir = new File("target");
         baseDir.mkdirs();
-        workBaseDir.mkdirs();
+        RelativePath workBaseDir = new RelativePath(baseDir, "target");
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
-        testOutputBase = new File(workBaseDir, "test-output");
-        testOutputBase.mkdirs();
+        state =
+                new PipelineState(
+                        pipelineId,
+                        baseDir,
+                        workBaseDir.subDir("rdfio").subDir("pipelines"),
+                        null,
+                        null,
+                        null);
+        testOutputBase = workBaseDir.subDir("test-output");
+        state.files().mkdirs(workBaseDir);
+        state.files().mkdirs(testOutputBase);
     }
 
     @Test
@@ -75,10 +82,10 @@ public class ShaclInferStepExecuteTests {
         step.execute(dataset, state);
 
         // Verify inferred file
-        File outputFile = new File(testOutputBase, "inferred.ttl");
+        RelativePath outputFile = testOutputBase.subFile("inferred.ttl");
         assertTrue(outputFile.exists(), "Inferred file should be created");
         Model inferredModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(inferredModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, inferredModel);
         assertTrue(
                 inferredModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -209,10 +216,10 @@ public class ShaclInferStepExecuteTests {
         step.execute(dataset, state);
 
         // Verify inferred file
-        File outputFile = new File(testOutputBase, "inferred.ttl");
+        RelativePath outputFile = testOutputBase.subFile("inferred.ttl");
         assertTrue(outputFile.exists(), "Inferred file should be created");
         Model inferredModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(inferredModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, inferredModel);
         assertTrue(
                 inferredModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -285,10 +292,10 @@ public class ShaclInferStepExecuteTests {
         step.execute(dataset, state);
 
         // Verify inferred file
-        File outputFile = new File(testOutputBase, "inferred.ttl");
+        RelativePath outputFile = testOutputBase.subFile("inferred.ttl");
         assertTrue(outputFile.exists(), "Inferred file should be created");
         Model inferredModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(inferredModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, inferredModel);
         assertTrue(
                 inferredModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),

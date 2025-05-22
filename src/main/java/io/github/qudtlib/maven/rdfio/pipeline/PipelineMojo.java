@@ -1,8 +1,11 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.step.SavepointStep;
 import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,8 +64,8 @@ public class PipelineMojo extends AbstractMojo {
                     new PipelineState(
                             pipeline.getId(),
                             pipeline.getBaseDir(),
-                            new File("target"),
-                            null,
+                            new RelativePath(workBaseDir, "rdfio").subDir("pipelines"),
+                            getLog(),
                             pipeline.getMetadataGraph(),
                             null);
             state.setAllowLoadingFromSavepoint(!pipeline.isForceRun());
@@ -111,11 +114,17 @@ public class PipelineMojo extends AbstractMojo {
         }
     }
 
-    void parseConfiguration() throws MojoExecutionException {
+    void parseConfiguration() throws ConfigurationParseException {
         if (configuration == null) {
             configuration = mojoExecution.getConfiguration();
         }
-        pipeline = Pipeline.parse(configuration, baseDir, RDFIO.metadataGraph.toString());
+        getLog().debug("configuration:\n" + configuration);
+        ParsingHelper.requiredDomChild(
+                configuration,
+                "pipeline",
+                Pipeline.makeParser(baseDir, RDFIO.metadataGraph.toString()),
+                this::setPipeline,
+                Pipeline::usage);
     }
 
     /** Package-private getter for testing purposes. */
@@ -125,6 +134,10 @@ public class PipelineMojo extends AbstractMojo {
 
     Pipeline getPipeline() {
         return this.pipeline;
+    }
+
+    public void setPipeline(Pipeline pipeline) {
+        this.pipeline = pipeline;
     }
 
     public void setProject(MavenProject project) {

@@ -6,16 +6,13 @@ import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.common.log.StdoutLog;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.*;
-import io.github.qudtlib.maven.rdfio.pipeline.step.support.GraphSelection;
-import io.github.qudtlib.maven.rdfio.pipeline.step.support.Inferred;
-import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
-import io.github.qudtlib.maven.rdfio.pipeline.step.support.Values;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.*;
 import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import java.io.*;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,8 +22,6 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,22 +30,28 @@ import org.junit.jupiter.api.Test;
 public class PipelineStepsTests {
     private Dataset dataset;
     private PipelineState state;
-    private File testOutputBase;
+    private RelativePath testOutputBase;
     private File baseDir;
-    private File workBaseDir;
     private String pipelineId;
 
     @BeforeEach
     void setUp() {
         dataset = DatasetFactory.create();
-        baseDir = new File(".");
-        workBaseDir = new File("target");
-        baseDir.mkdirs();
-        workBaseDir.mkdirs();
         pipelineId = "test-pipeline";
-        state = new PipelineState(pipelineId, baseDir, workBaseDir, null, null, null);
-        testOutputBase = new File(workBaseDir, "test-output");
-        testOutputBase.mkdirs();
+        baseDir = new File(".");
+        baseDir.mkdirs();
+        RelativePath workBaseDir = new RelativePath(baseDir, "target");
+        testOutputBase = workBaseDir.subDir("test-output");
+        state =
+                new PipelineState(
+                        pipelineId,
+                        baseDir,
+                        workBaseDir.subDir("rdfio").subDir("pipelines"),
+                        new StdoutLog(),
+                        null,
+                        null);
+        state.files().mkdirs(workBaseDir);
+        state.files().mkdirs(testOutputBase);
         createShapesAndDataFiles(state);
     }
 
@@ -392,16 +393,16 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("http://example.org/s"),
                 ResourceFactory.createProperty("http://example.org/p"),
                 ResourceFactory.createResource("http://example.org/o"));
-        File outputFile = new File(testOutputBase, "custom-output.ttl");
+        RelativePath outputFile = testOutputBase.subFile("custom-output.ttl");
 
         WriteStep step = new WriteStep();
         step.addGraph("test:graph");
-        step.setToFile(outputFile.getPath());
+        step.setToFile(outputFile.getRelativePath());
 
         step.execute(dataset, state);
 
         Model writtenModel = ModelFactory.createDefaultModel();
-        RDFDataMgr.read(writtenModel, new FileInputStream(outputFile), Lang.TTL);
+        state.files().readRdf(outputFile, writtenModel);
         assertTrue(
                 writtenModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -418,7 +419,7 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("http://example.org/o"));
         Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
         metaModel.add(
-                ResourceFactory.createResource("file://test-data/sample.ttl"),
+                ResourceFactory.createResource("test-data/sample.ttl"),
                 RDFIO.loadsInto,
                 ResourceFactory.createResource("test:graph"));
 
@@ -429,18 +430,18 @@ public class PipelineStepsTests {
         String hash = step.calculateHash("", state);
         step.execute(dataset, state);
 
-        File savepointDir = state.getSavepointCache().getSavepointDir("sp001");
-        File hashFile = new File(savepointDir, "hash.txt");
-        File datasetFile = new File(savepointDir, "dataset.trig");
-        assertTrue(hashFile.exists(), "hash.txt should exist");
-        assertTrue(datasetFile.exists(), "dataset.trig should exist");
+        RelativePath hashPath = state.getSavepointCache().getHashFile("sp001");
+        RelativePath datasetPath = state.getSavepointCache().getDatasetFile("sp001");
+        assertTrue(hashPath.exists(), "hash.txt should exist");
+        assertTrue(datasetPath.exists(), "dataset.trig should exist");
 
-        String storedHash = Files.readString(hashFile.toPath(), StandardCharsets.UTF_8).trim();
+        String storedHash = state.files().readText(hashPath);
         assertEquals(hash, storedHash, "Stored hash should match computed hash");
 
         Dataset loadedDataset = DatasetFactory.create();
-        RDFDataMgr.read(loadedDataset, new FileInputStream(datasetFile), Lang.TRIG);
+        state.files().readRdf(datasetPath, loadedDataset);
         Model loadedModel = loadedDataset.getNamedModel("test:graph");
+        System.out.println(PipelineHelper.datasetToPrettyTrig(dataset));
         assertTrue(
                 loadedModel.contains(
                         ResourceFactory.createResource("http://example.org/s"),
@@ -453,7 +454,7 @@ public class PipelineStepsTests {
         PipelineHelper.clearDataset(dataset);
         step.execute(dataset, state);
         assertTrue(dataset.isEmpty(), "Dataset should be empty after invalid savepoint");
-        String newStoredHash = Files.readString(hashFile.toPath(), StandardCharsets.UTF_8).trim();
+        String newStoredHash = state.files().readText(hashPath);
         assertEquals(newHash, newStoredHash, "New stored hash should match new computed hash");
     }
 
@@ -470,7 +471,7 @@ public class PipelineStepsTests {
         assertTrue(
                 state.getPrecedingSteps().contains(step),
                 "Step should be added to preceding steps");
-        File savepointDir = state.getSavepointCache().getSavepointDir(step.getId());
+        RelativePath savepointDir = state.getSavepointCache().getSavepointDir(step.getId());
         assertFalse(savepointDir.exists(), "Savepoint directory should not be created");
     }
 
@@ -496,8 +497,8 @@ public class PipelineStepsTests {
 
         step.execute(dataset, state);
 
-        File hashFile = new File(state.getSavepointCache().getSavepointDir("sp001"), "hash.txt");
-        Files.write(hashFile.toPath(), "invalid-hash".getBytes());
+        RelativePath hashFile = state.getSavepointCache().getHashFile("sp001");
+        state.files().writeText(hashFile, "invalid-hash");
 
         PipelineHelper.clearDataset(dataset);
         step.execute(dataset, state);
@@ -655,6 +656,8 @@ public class PipelineStepsTests {
     @Test
     void testPipelineMojoWithSavepoints() throws Exception {
         PipelineMojo mojo = new PipelineMojo();
+        mojo.setBaseDir(new File("."));
+        mojo.setWorkBaseDir(new File("target"));
         setField(
                 mojo,
                 "configuration",
@@ -668,9 +671,8 @@ public class PipelineStepsTests {
         mojo.execute();
         pipeline.setForceRun(false);
         Dataset loadedDataset = DatasetFactory.create();
-        File datasetFile =
-                new File(state.getSavepointCache().getSavepointDir("sp002"), "dataset.trig");
-        RDFDataMgr.read(loadedDataset, new FileInputStream(datasetFile), Lang.TRIG);
+        RelativePath datasetPath = state.getSavepointCache().getDatasetFile("sp002");
+        state.files().readRdf(datasetPath, loadedDataset);
         Model loadedModel = loadedDataset.getNamedModel("test:graph");
         assertTrue(
                 loadedModel.contains(
@@ -826,13 +828,14 @@ public class PipelineStepsTests {
 
         // First execution
         PipelineMojo mojo = new PipelineMojo();
+        mojo.setBaseDir(new File("."));
+        mojo.setWorkBaseDir(new File("target"));
         setField(mojo, "pipeline", pipeline);
         mojo.execute();
 
         // Verify savepoint created
-        File savepointDir = state.getSavepointCache().getSavepointDir("sp001");
-        File datasetFile = new File(savepointDir, "dataset.trig");
-        assertTrue(datasetFile.exists(), "Savepoint dataset.trig should exist");
+        RelativePath datasetPath = state.getSavepointCache().getDatasetFile("sp001");
+        assertTrue(datasetPath.exists(), "Savepoint dataset.trig should exist");
 
         // Modify input file
         String modifiedContent =
