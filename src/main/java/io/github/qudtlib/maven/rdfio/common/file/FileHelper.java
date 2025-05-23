@@ -95,12 +95,10 @@ public class FileHelper {
             if (!file.exists()) {
                 try {
                     throw new PipelineConfigurationExeception(
-                            "Configured %s file does not exist: %s"
-                                    .formatted(kind, file.getCanonicalPath()));
+                            "%s file does not exist: %s".formatted(kind, file.getCanonicalPath()));
                 } catch (IOException e) {
                     throw new PipelineConfigurationExeception(
-                            "Configured %s file does not exist: %s"
-                                    .formatted(kind, file.getAbsolutePath()));
+                            "%s file does not exist: %s".formatted(kind, file.getAbsolutePath()));
                 }
             }
         }

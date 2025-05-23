@@ -125,7 +125,6 @@ public class AddStep implements Step {
             // take default model and put it in the toGraph
             dataset.getNamedModel(toGraphResolved).add(dataset.getDefaultModel());
         } else {
-            File baseDir = state.getBaseDir();
             List<RelativePath> inputFiles = inputsComponent.getAllInputPaths(dataset, state);
             int index = 0;
             if (!inputFiles.isEmpty()) {

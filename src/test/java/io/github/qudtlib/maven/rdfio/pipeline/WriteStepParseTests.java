@@ -65,10 +65,8 @@ public class WriteStepParseTests {
                 </write>
                 """;
         Xpp3Dom config = buildConfig(xml);
-        assertThrows(
-                ConfigurationParseException.class,
-                () -> WriteStep.parse(config),
-                "Should throw for missing graph");
+        WriteStep step = WriteStep.parse(config);
+        assertEquals("target/output.ttl", step.getToFile());
     }
 
     @Test

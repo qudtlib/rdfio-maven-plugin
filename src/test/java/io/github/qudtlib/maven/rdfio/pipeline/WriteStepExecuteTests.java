@@ -127,10 +127,8 @@ public class WriteStepExecuteTests {
                 </write>
                 """;
         Xpp3Dom config = buildConfig(xml);
-        assertThrows(
-                ConfigurationParseException.class,
-                () -> WriteStep.parse(config),
-                "Should throw when graph is missing during parsing");
+        WriteStep step = WriteStep.parse(config);
+        assertEquals("target/test-output/output.ttl", step.getToFile());
     }
 
     @Test
@@ -273,7 +271,7 @@ public class WriteStepExecuteTests {
         step.execute(dataset, state);
 
         // Verify written file and directory
-        RelativePath outputFile = testOutputBase.subDir("new-dir").subFile("custom-output.ttl");
+        RelativePath outputFile = testOutputBase.subDir("new-dir").subFile("output.ttl");
         Model writtenModel = ModelFactory.createDefaultModel();
         state.files().readRdf(outputFile, writtenModel);
         assertTrue(outputFile.exists(), "Output file should be created");

@@ -49,15 +49,12 @@ public class WriteStep implements Step {
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
-        if (graphs.isEmpty()) {
-            throw new MojoExecutionException("Graph is required in write step");
-        }
 
         // possible cases
-        // 1. no toGraph - each graph must have an associated file
-        // 2. toGraph is a triples format (eg. xyz.ttl) - the union of all graphs is written to the
+        // 1. no toFile - each graph must have an associated file
+        // 2. toFile is a triples format (eg. xyz.ttl) - the union of all graphs is written to the
         // file
-        // 3. tgGraph is a quads format (eg.  xyz.trig) - each graph is written to the file with the
+        // 3. toFile is a quads format (eg.  xyz.trig) - each graph is written to the file with the
         // graph uri as the fourth element
         if (this.toFile == null) {
             writeOneFilePerGraph(dataset, state);
@@ -68,15 +65,23 @@ public class WriteStep implements Step {
             if (RDFLanguages.isQuads(outputLang)) {
                 state.files().createParentFolder(outputPath);
                 Dataset dsToWrite = DatasetFactory.create();
-                for (String graph : state.variables().resolve(graphs, dataset)) {
-                    dsToWrite.addNamedModel(graph, dataset.getNamedModel(graph));
+                if (graphs.isEmpty()) {
+                    dsToWrite.getDefaultModel().add(dataset.getDefaultModel());
+                } else {
+                    for (String graph : state.variables().resolve(graphs, dataset)) {
+                        dsToWrite.addNamedModel(graph, dataset.getNamedModel(graph));
+                    }
                 }
                 state.files().writeRdf(outputPath, dsToWrite);
             } else {
                 state.files().createParentFolder(outputPath);
                 Model modelToWrite = ModelFactory.createDefaultModel();
-                for (String graph : state.variables().resolve(graphs, dataset)) {
-                    modelToWrite.add(dataset.getNamedModel(graph));
+                if (graphs.isEmpty()) {
+                    modelToWrite.add(dataset.getDefaultModel());
+                } else {
+                    for (String graph : state.variables().resolve(graphs, dataset)) {
+                        modelToWrite.add(dataset.getNamedModel(graph));
+                    }
                 }
                 state.files().writeRdf(outputPath, modelToWrite);
             }
@@ -87,6 +92,11 @@ public class WriteStep implements Step {
 
     private void writeOneFilePerGraph(Dataset dataset, PipelineState state)
             throws MojoExecutionException {
+        if (this.graphs.isEmpty()) {
+            throw new MojoExecutionException(
+                    "Neither <graph> nor <toFile> is specified - that is not enough\n%s"
+                            .formatted(usage()));
+        }
         String outputFileStr;
         for (String graph : state.variables().resolve(this.graphs, dataset)) {
             Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
@@ -139,18 +149,37 @@ public class WriteStep implements Step {
         }
 
         WriteStep step = new WriteStep();
-        ParsingHelper.requiredStringChildren(config, "graph", step::addGraph, WriteStep::usage);
+        ParsingHelper.optionalStringChildren(config, "graph", step::addGraph, WriteStep::usage);
         ParsingHelper.optionalStringChild(config, "toFile", step::setToFile, WriteStep::usage);
+        if (step.graphs.isEmpty()) {
+            if (step.toFile == null) {
+                throw new ConfigurationParseException(
+                        """
+                            No <graph> is specified, data is taken from the default graph.
+                            In this case <toFile> must be specified
+                            %s"""
+                                .formatted(usage()));
+            }
+        }
         return step;
     }
 
     public static String usage() {
         return """
-                           Usage: Provide a <write> element with one or more <graph> and an optional <toFile> elements. The <toFile> element
-                           can be omitted if the system knows which file each <graph> was read from, in which case it
-                           will overwrite that file with the contents of the graph.
-                           The toFile element can have a triples or quads file extension (eg '.ttl' or '.trig'). In the first case, the union of the specified
-                           graphs is written to the file, in the latter, individual graphs are written to the file.
+                           Usage:
+
+                            Provide a <write> element with optional <graph>s and one optional <toFile> elements.
+
+                            If <graph> is omitted, <toFile> must be present - in this case the content of the default
+                            graph is written to the file.
+
+                            The <toFile> element can be omitted if the system knows which file each <graph>
+                            was read from, in which case it will overwrite that file with the contents of the graph.
+
+                            The toFile element can have a triples or quads file extension (eg '.ttl' or '.trig').
+                            In the first case, the union of the specified graphs is written to the file, in the latter,
+                            individual graphs are written to the file.
+
                            Example:
                            <write>
                                <graph>test:graph</graph>

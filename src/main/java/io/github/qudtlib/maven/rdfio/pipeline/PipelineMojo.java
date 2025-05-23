@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -39,6 +41,27 @@ public class PipelineMojo extends AbstractMojo {
     private Pipeline pipeline;
 
     Dataset dataset = null;
+
+    private Xpp3Dom getExecutionConfiguration() throws MojoExecutionException {
+        for (Plugin plugin : project.getBuildPlugins()) {
+            getLog().info("checking plugin" + plugin);
+            if (plugin.getArtifactId().equals(mojoExecution.getArtifactId())) {
+                PluginExecution execution =
+                        plugin.getExecutionsAsMap().get(mojoExecution.getExecutionId());
+                getLog().info("checking execution" + execution);
+                if (execution != null) {
+                    getLog().info("returning configuration");
+                    return (Xpp3Dom) execution.getConfiguration();
+                }
+            }
+        }
+        throw new MojoExecutionException(
+                "Unable to find configuration for plugin %s, goal %s, execution %s"
+                        .formatted(
+                                mojoExecution.getArtifactId(),
+                                mojoExecution.getGoal(),
+                                mojoExecution.getExecutionId()));
+    }
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -114,11 +137,12 @@ public class PipelineMojo extends AbstractMojo {
         }
     }
 
-    void parseConfiguration() throws ConfigurationParseException {
+    void parseConfiguration() throws ConfigurationParseException, MojoExecutionException {
+        getLog().info("parsing configuration");
         if (configuration == null) {
-            configuration = mojoExecution.getConfiguration();
+            configuration = getExecutionConfiguration();
         }
-        getLog().debug("configuration:\n" + configuration);
+        getLog().info("configuration:\n" + configuration);
         ParsingHelper.requiredDomChild(
                 configuration,
                 "pipeline",
