@@ -1,14 +1,11 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import io.github.qudtlib.maven.rdfio.common.RDFIO;
-import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.*;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,8 +15,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
@@ -64,6 +59,7 @@ public class AddStep implements Step {
         AddStep step = new AddStep();
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Add step configuration is missing.
                             %s"""
@@ -88,6 +84,7 @@ public class AddStep implements Step {
 
                 String unknownVar = m.group(0);
                 throw new ConfigurationParseException(
+                        config,
                         String.format(
                                 """
                                 Encountered variable %s, which is not supported."
@@ -122,51 +119,46 @@ public class AddStep implements Step {
                         "<add> has no inputs - it needs at least a <toGraph> element, so we can copy the triples from the default graph there.\n%s"
                                 .formatted(usage()));
             }
+            state.getLog().debug("Loading default graph into graph %s".formatted(toGraphResolved));
             // take default model and put it in the toGraph
-            dataset.getNamedModel(toGraphResolved).add(dataset.getDefaultModel());
+            PipelineHelper.addDefaultModelToGraph(dataset, state, toGraphResolved);
         } else {
             List<RelativePath> inputFiles = inputsComponent.getAllInputPaths(dataset, state);
             int index = 0;
             if (!inputFiles.isEmpty()) {
                 for (RelativePath inputPath : inputFiles) {
                     String inputFilePath = inputPath.getRelativePath();
-                    String tgp =
-                            replaceVariables(
-                                    getToGraphsPattern(),
-                                    inputFilePath,
-                                    inputPath.getName(),
-                                    index);
-                    String targetGraph = toGraphResolved != null ? toGraphResolved : tgp;
-                    Model model;
-                    if (targetGraph == null) {
-                        model = dataset.getDefaultModel();
+                    boolean isBijectiveFileToGraphRel = false;
+                    String targetGraph = null;
+                    if (toGraphResolved != null) {
+                        if (inputFiles.size() == 1) {
+                            isBijectiveFileToGraphRel = true;
+                        }
+                        targetGraph = toGraphResolved;
+                    } else if (getToGraphsPattern() != null) {
+                        String tgp =
+                                replaceVariables(
+                                        getToGraphsPattern(),
+                                        inputFilePath,
+                                        inputPath.getName(),
+                                        index);
+                        if (!tgp.equals(getToGraphsPattern())) {
+                            // the replace did change something - each file gets its own graph
+                            isBijectiveFileToGraphRel = true;
+                        }
+                        targetGraph = tgp;
                     } else {
-                        model = dataset.getNamedModel(targetGraph);
+                        targetGraph = null; // will write to default graph
                     }
-                    List<File> files = List.of(inputPath.resolve());
-                    FileHelper.ensureFilesExist(files, "input");
-                    FileAccess.readRdf(inputPath, model, state);
-                    if (targetGraph != null) {
-                        Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
-                        metaModel.add(
-                                inputPath.getRelativePathAsResource(),
-                                RDFIO.loadsInto,
-                                ResourceFactory.createResource(targetGraph));
-                    }
+                    PipelineHelper.readFileToGraph(
+                            dataset, state, inputPath, targetGraph, isBijectiveFileToGraphRel);
                     index++;
                 }
             }
             List<String> inputGraphs = inputsComponent.getAllInputGraphs(dataset, state);
             if (!inputGraphs.isEmpty()) {
                 if (toGraphResolved != null) {
-                    Model targetModel = dataset.getNamedModel(toGraphResolved);
-                    for (String sourceGraph : inputGraphs) {
-                        requireSourceGraphExists(dataset, sourceGraph);
-                        Model sourceModel = dataset.getNamedModel(sourceGraph);
-                        if (sourceModel != null) {
-                            targetModel.add(sourceModel);
-                        }
-                    }
+                    PipelineHelper.addGraphsToGraph(dataset, toGraphResolved, inputGraphs, state);
                 } else if (toGraphsPatternResolved != null) {
                     for (String sourceGraph : inputGraphs) {
                         String targetGraph =
@@ -175,36 +167,15 @@ public class AddStep implements Step {
                                         sourceGraph,
                                         getName(sourceGraph),
                                         index);
-                        requireSourceGraphExists(dataset, sourceGraph);
-                        Model sourceModel = dataset.getNamedModel(sourceGraph);
-                        Model targetModel = dataset.getNamedModel(targetGraph);
-                        if (sourceModel != null) {
-                            targetModel.add(sourceModel);
-                        }
+                        PipelineHelper.addGraphToGraph(dataset, sourceGraph, targetGraph, state);
                         index++;
                     }
                 } else {
-                    Model targetModel = dataset.getDefaultModel();
-                    for (String sourceGraph : inputGraphs) {
-                        requireSourceGraphExists(dataset, sourceGraph);
-                        Model sourceModel = dataset.getNamedModel(sourceGraph);
-                        if (sourceModel != null) {
-                            targetModel.add(sourceModel);
-                        }
-                    }
+                    PipelineHelper.addGraphsToDefaultGraph(dataset, inputGraphs, state);
                 }
             }
         }
         state.getPrecedingSteps().add(this);
-    }
-
-    public static void requireSourceGraphExists(Dataset dataset, String sourceGraph)
-            throws MojoExecutionException {
-        if (!dataset.containsNamedModel(sourceGraph)) {
-            throw new MojoExecutionException(
-                    "source graph of <add> element '%s' not found in dataset"
-                            .formatted(sourceGraph));
-        }
     }
 
     private static String getName(String sourceGraph) {

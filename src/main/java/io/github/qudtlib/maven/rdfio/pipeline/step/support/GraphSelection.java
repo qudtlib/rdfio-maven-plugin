@@ -37,6 +37,7 @@ public class GraphSelection {
     public static GraphSelection parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             GraphSelection configuration is missing.
                             Usage: Provide a <graphs> element with at least one <include> pattern.
@@ -47,6 +48,7 @@ public class GraphSelection {
         Xpp3Dom[] includeDoms = config.getChildren("include");
         if (includeDoms.length == 0) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             GraphSelection requires at least one <include> pattern.
                             Usage: Specify one or more graph URI patterns.
@@ -57,6 +59,7 @@ public class GraphSelection {
                 selection.addInclude(includeDom.getValue().trim());
             } else {
                 throw new ConfigurationParseException(
+                        config,
                         """
                                 Empty or missing <include> pattern in GraphSelection.
                                 Usage: Provide a non-empty graph URI pattern.

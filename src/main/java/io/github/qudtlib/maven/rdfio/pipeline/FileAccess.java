@@ -69,7 +69,7 @@ public class FileAccess {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
-        state.getLog().info("Writing RDF dataset to: " + file.getAbsolutePath());
+        state.getLog().debug("Writing RDF dataset to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, dataset, lang);
         } catch (IOException e) {
@@ -85,7 +85,7 @@ public class FileAccess {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
-        state.getLog().info("Writing RDF model to: " + file.getAbsolutePath());
+        state.getLog().debug("Writing RDF model to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, model, lang);
         } catch (IOException e) {
@@ -112,7 +112,7 @@ public class FileAccess {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
-        state.getLog().info("Writing text to: " + file.getAbsolutePath());
+        state.getLog().debug("Writing text to: " + file.getAbsolutePath());
         try {
             Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {

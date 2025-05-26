@@ -1,7 +1,7 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import io.github.qudtlib.maven.rdfio.common.LogHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
-import io.github.qudtlib.maven.rdfio.common.file.RdfFileProcessor;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.FileAccess;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
@@ -10,10 +10,10 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.support.Inferred;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
@@ -77,6 +77,7 @@ public class ShaclInferStep implements Step {
     public static ShaclInferStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                     ShaclInfer step configuration is missing.
                     %s"""
@@ -107,15 +108,15 @@ public class ShaclInferStep implements Step {
 
         if (step.getInferred() == null) {
             throw new ConfigurationParseException(
-                    "<shaclInfer> must have a <inferred> sub-element.\n" + usage());
+                    config, "<shaclInfer> must have a <inferred> sub-element.\n" + usage());
         }
         if (step.getShapes() == null) {
             throw new ConfigurationParseException(
-                    "<shaclInfer> must have a <shapes> sub-element.\n" + usage());
+                    config, "<shaclInfer> must have a <shapes> sub-element.\n" + usage());
         }
         if (step.getData() == null) {
             throw new ConfigurationParseException(
-                    "<shaclInfer> must have a <data> sub-element.\n" + usage());
+                    config, "<shaclInfer> must have a <data> sub-element.\n" + usage());
         }
 
         return step;
@@ -158,37 +159,8 @@ public class ShaclInferStep implements Step {
             state.getLog().info(state.variables().resolve(message, dataset));
         }
         try {
-            Model shapesModel = ModelFactory.createDefaultModel();
-            if (shapes == null) {
-                shapesModel.add(dataset.getDefaultModel());
-            } else {
-                List<RelativePath> shapesPaths = shapes.getAllInputPaths(dataset, state);
-                FileHelper.ensureRelativePathsExist(shapesPaths, "shapes");
-                FileAccess.readRdf(shapesPaths, shapesModel, state);
-                if (shapes.getGraphs() != null) {
-                    PipelineHelper.ensureGraphsExist(dataset, data.getGraphs(), "shapes");
-                    shapes.getGraphs().forEach(g -> shapesModel.add(dataset.getNamedModel(g)));
-                }
-                PipelineHelper.getGraphs(dataset, shapes.getGraphSelection())
-                        .forEach(g -> shapesModel.add(dataset.getNamedModel(g)));
-            }
-            shapesModel.add(dataset.getNamedModel(state.getShaclFunctionsGraph()));
-            Model dataModel = ModelFactory.createDefaultModel();
-            if (data == null) {
-                dataModel.add(dataset.getDefaultModel());
-            } else {
-                List<File> files =
-                        RdfFileProcessor.resolveFiles(
-                                data.getFiles(), data.getFileSelection(), state.getBaseDir());
-                FileHelper.ensureFilesExist(files, "data");
-                RdfFileProcessor.loadRdfFiles(files, dataModel);
-                if (data.getGraphs() != null) {
-                    PipelineHelper.ensureGraphsExist(dataset, data.getGraphs(), "data");
-                    data.getGraphs().forEach(g -> dataModel.add(dataset.getNamedModel(g)));
-                }
-                PipelineHelper.getGraphs(dataset, data.getGraphSelection())
-                        .forEach(g -> dataModel.add(dataset.getNamedModel(g)));
-            }
+            Model shapesModel = populateShapesModel(dataset, state);
+            Model dataModel = populateDataModel(dataset, state);
             Model inferredModel = ModelFactory.createDefaultModel();
             Model newTriples = null;
             int i = 0;
@@ -209,6 +181,7 @@ public class ShaclInferStep implements Step {
             } while (repeatUntilStable && !newTriples.isEmpty() && modelGrew);
             if (inferred != null && inferred.getGraph() != null) {
                 dataset.addNamedModel(inferred.getGraph(), inferredModel);
+                PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, inferred.getGraph());
             } else {
                 dataset.getDefaultModel().add(inferredModel);
             }
@@ -223,6 +196,52 @@ public class ShaclInferStep implements Step {
                             .formatted(e.getMessage(), usage()),
                     e);
         }
+    }
+
+    private Model populateDataModel(Dataset dataset, PipelineState state)
+            throws MojoExecutionException {
+        return populateModelFromInputs(dataset, state, this.data, List.of(), "SHACL data");
+    }
+
+    private Model populateShapesModel(Dataset dataset, PipelineState state) {
+        Model shapesModel =
+                populateModelFromInputs(
+                        dataset,
+                        state,
+                        this.shapes,
+                        List.of(state.getShaclFunctionsGraph()),
+                        "SHACL shapes");
+        return shapesModel;
+    }
+
+    private static Model populateModelFromInputs(
+            Dataset dataset,
+            PipelineState state,
+            InputsComponent<ShaclInferStep> inputsComponent,
+            List<String> additionalGraphs,
+            String fileKind) {
+        Model dataModel = ModelFactory.createDefaultModel();
+        List<String> entries = new ArrayList<>();
+        String indent = "        ";
+        if (inputsComponent == null || inputsComponent.hasNoInputs()) {
+            dataModel.add(dataset.getDefaultModel());
+            entries.add(PipelineHelper.formatDefaultGraph(indent));
+        } else {
+            List<RelativePath> dataPaths = inputsComponent.getAllInputPaths(dataset, state);
+            FileHelper.ensureRelativePathsExist(dataPaths, fileKind);
+            FileAccess.readRdf(dataPaths, dataModel, state);
+            entries.addAll(PipelineHelper.formatPaths(dataPaths, indent));
+            List<String> allGraphs = new ArrayList<>();
+            allGraphs.addAll(additionalGraphs);
+            allGraphs.addAll(inputsComponent.getAllInputGraphs(dataset, state));
+            if (allGraphs != null) {
+                allGraphs.forEach(g -> dataModel.add(dataset.getNamedModel(g)));
+            }
+            entries.addAll(PipelineHelper.formatGraphs(allGraphs, indent));
+        }
+        state.getLog().info("    " + fileKind);
+        LogHelper.info(state.getLog(), entries);
+        return dataModel;
     }
 
     @Override

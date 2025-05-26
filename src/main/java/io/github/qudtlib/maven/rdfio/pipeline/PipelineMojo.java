@@ -8,7 +8,10 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.maven.model.Plugin;
@@ -36,6 +39,13 @@ public class PipelineMojo extends AbstractMojo {
     @Parameter(defaultValue = "${mojoExecution}", readonly = true)
     private MojoExecution mojoExecution;
 
+    /**
+     * If <code>true</code>, the pipeline will disregard any valid savepoints and run from the
+     * beginning.
+     */
+    @Parameter(property = "rdfio.pipeline.forceRun", defaultValue = "false")
+    private Object forceRun;
+
     private Xpp3Dom configuration;
 
     private Pipeline pipeline;
@@ -43,14 +53,12 @@ public class PipelineMojo extends AbstractMojo {
     Dataset dataset = null;
 
     private Xpp3Dom getExecutionConfiguration() throws MojoExecutionException {
+        getLog().debug("searching pipeline plugin configuration");
         for (Plugin plugin : project.getBuildPlugins()) {
-            getLog().info("checking plugin" + plugin);
             if (plugin.getArtifactId().equals(mojoExecution.getArtifactId())) {
                 PluginExecution execution =
                         plugin.getExecutionsAsMap().get(mojoExecution.getExecutionId());
-                getLog().info("checking execution" + execution);
                 if (execution != null) {
-                    getLog().info("returning configuration");
                     return (Xpp3Dom) execution.getConfiguration();
                 }
             }
@@ -72,6 +80,32 @@ public class PipelineMojo extends AbstractMojo {
             if (pipeline == null) {
                 throw new MojoExecutionException("Pipeline configuration is required");
             }
+            // Apply forceRun from Maven property
+            // set it to anything else than 'false', including nothing, force is activated
+            if (forceRun != null) {
+                if (forceRun.toString().toLowerCase(Locale.ROOT).equals("false")) {
+                    getLog().info(
+                                    "Pipeline '%s' has been configured to start from the latest valid savepoint using maven property 'rdfio.pipeline.forceRun=false'"
+                                            .formatted(pipeline.getId()));
+                    pipeline.setForceRun(false);
+                } else {
+                    getLog().info(
+                                    "Pipeline '%s' is has been forced to run from the start using maven property 'rdfio.pipeline.forceRun'"
+                                            .formatted(pipeline.getId()));
+                    pipeline.setForceRun(true);
+                }
+            } else {
+                if (pipeline.isForceRun()) {
+                    getLog().info(
+                                    "Pipeline '%s' is configured to run from the start, ignoring any valid savepoints (can be overriddden using maven property '-Drdfio.pipeline.forceRun=false')"
+                                            .formatted(pipeline.getId()));
+                } else {
+                    getLog().info(
+                                    "Pipeline '%s' is configured to start from the lastest valid savepoint (can be overriddden using maven property '-Drdfio.pipeline.forceRun')"
+                                            .formatted(pipeline.getId()));
+                }
+            }
+
             // Assign default savepoint IDs
             int savepointCount = 0;
             for (Step step : pipeline.getSteps()) {
@@ -111,6 +145,12 @@ public class PipelineMojo extends AbstractMojo {
                     if (step instanceof SavepointStep savepoint) {
                         if (savepoint.isValid(state, stepHashes.get(i))) {
                             startIndex = i; // Start with the valid savepoint
+                            getLog().info(
+                                            "Valid <savepoint> '%s' found (step %d) in pipeline '%s', resuming pipeline execution from there."
+                                                    .formatted(
+                                                            savepoint.getId(),
+                                                            (i + 1),
+                                                            pipeline.getId()));
                             break;
                         }
                     }
@@ -138,17 +178,29 @@ public class PipelineMojo extends AbstractMojo {
     }
 
     void parseConfiguration() throws ConfigurationParseException, MojoExecutionException {
-        getLog().info("parsing configuration");
         if (configuration == null) {
             configuration = getExecutionConfiguration();
         }
-        getLog().info("configuration:\n" + configuration);
-        ParsingHelper.requiredDomChild(
-                configuration,
-                "pipeline",
-                Pipeline.makeParser(baseDir, RDFIO.metadataGraph.toString()),
-                this::setPipeline,
-                Pipeline::usage);
+        try {
+            ParsingHelper.requiredDomChild(
+                    configuration,
+                    "pipeline",
+                    Pipeline.makeParser(baseDir, RDFIO.metadataGraph.toString()),
+                    this::setPipeline,
+                    Pipeline::usage);
+        } catch (ConfigurationParseException e) {
+            throw new MojoExecutionException(
+                    "Error parsing <pipeline> at element:\n%s\n\n%s"
+                            .formatted(
+                                    skipFirstLine(e.getConfiguration().toString()), e.getMessage()),
+                    e);
+        }
+    }
+
+    private static String skipFirstLine(String s) {
+        List<String> lines = new ArrayList<>(Arrays.asList(s.split("\n")));
+        lines.remove(0);
+        return lines.stream().collect(Collectors.joining("\n"));
     }
 
     /** Package-private getter for testing purposes. */

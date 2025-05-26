@@ -90,6 +90,7 @@ public class SavepointStep implements Step {
     public static SavepointStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Savepoint step configuration is missing.
                             Usage: Provide a <savepoint> element with a required <id> and optional <enabled>.
@@ -104,6 +105,7 @@ public class SavepointStep implements Step {
         Xpp3Dom idDom = config.getChild("id");
         if (idDom == null || idDom.getValue() == null || idDom.getValue().trim().isEmpty()) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Savepoint step requires a non-empty <id>.
                             Usage: Specify a unique identifier for the savepoint.

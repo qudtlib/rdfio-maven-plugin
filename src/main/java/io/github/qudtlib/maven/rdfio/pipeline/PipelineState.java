@@ -13,12 +13,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.maven.plugin.logging.Log;
 
 public class PipelineState {
-    private Dataset dataset = DatasetFactory.create();
     private SavepointCache savepointCache;
     private boolean allowLoadingFromSavepoint = true;
     private String metadataGraph;
@@ -55,14 +53,6 @@ public class PipelineState {
                         .orElse(RDFIO.shaclFunctionsGraph.toString());
         this.files = new Files();
         this.variables = new PipelineState.Variables();
-    }
-
-    public Dataset getDataset() {
-        return dataset;
-    }
-
-    public void setDataset(Dataset dataset) {
-        this.dataset = dataset;
     }
 
     public SavepointCache getSavepointCache() {

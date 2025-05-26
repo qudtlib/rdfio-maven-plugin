@@ -49,6 +49,7 @@ public class FileSelection {
     public static FileSelection parse(Xpp3Dom config) {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             FileSelection configuration is missing.
                             Usage: Provide a <files> element with at least one <include> pattern.
@@ -63,6 +64,7 @@ public class FileSelection {
         Xpp3Dom[] includeDoms = config.getChildren("include");
         if (includeDoms.length == 0) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             FileSelection requires at least one <include> pattern.
                             Usage: Specify one or more Ant-style include patterns.
@@ -73,6 +75,7 @@ public class FileSelection {
                 selection.setInclude(includeDom.getValue().trim());
             } else {
                 throw new ConfigurationParseException(
+                        config,
                         """
                                 Empty or missing <include> pattern in FileSelection.
                                 Usage: Provide a non-empty Ant-style pattern.

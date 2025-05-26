@@ -16,6 +16,9 @@ public final class RDFIO {
     /** Property relating a file URI to a graph URI (e.g., file://path loadsInto test:graph). */
     public static final Property loadsInto = ResourceFactory.createProperty(NS + "loadsInto");
 
+    /** Property relating a file URI to a graph URI (e.g., file://path loadsInto test:graph). */
+    public static final Property NoFile = ResourceFactory.createProperty(NS + "NoFile");
+
     /** Property for storing variable values (e.g., variables/fileGraph value "vocab:test1"). */
     public static final Property value = ResourceFactory.createProperty(NS + "value");
 

@@ -38,7 +38,11 @@ public class ParsingHelper {
             throws ConfigurationParseException {
         int count =
                 handleDomChildrenInternal(config, name, childParser, childSetter, usageSupplier);
-        throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+        try {
+            throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
     public static <T> void requiredDomChildren(
@@ -108,7 +112,11 @@ public class ParsingHelper {
             int maxCount)
             throws ConfigurationParseException {
         int count = handleStringChildrenInternal(config, name, childHandler, usageSupplier);
-        throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+        try {
+            throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
     public static void booleanChildren(
@@ -120,7 +128,11 @@ public class ParsingHelper {
             int maxCount)
             throws ConfigurationParseException {
         int count = handleBooleanChildrenInternal(config, name, childHandler, usageSupplier);
-        throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+        try {
+            throwCountExceptions(name, usageSupplier, minCount, maxCount, count);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
     public static void optionalStringChildren(
@@ -128,7 +140,11 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 0, -1);
+        try {
+            stringChildren(config, name, requireNonBlank(name, valueSetter), usageSupplier, 0, -1);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
     public static void requiredStringChildren(
@@ -136,7 +152,11 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 1, -1);
+        try {
+            stringChildren(config, name, requireNonBlank(name, valueSetter), usageSupplier, 1, -1);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
     public static void requiredStringChild(
@@ -144,7 +164,11 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 1, 1);
+        try {
+            stringChildren(config, name, requireNonBlank(name, valueSetter), usageSupplier, 1, 1);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
     public static void optionalStringChild(
@@ -152,13 +176,19 @@ public class ParsingHelper {
             String name,
             Consumer<String> valueSetter,
             Supplier<String> usageSupplier) {
-        stringChildren(config, name, requireNonBlank(valueSetter), usageSupplier, 0, 1);
+        try {
+            stringChildren(config, name, requireNonBlank(name, valueSetter), usageSupplier, 0, 1);
+        } catch (Exception e) {
+            throw new ConfigurationParseException(config, e);
+        }
     }
 
-    private static Consumer<String> requireNonBlank(Consumer<String> valueSetter) {
+    private static Consumer<String> requireNonBlank(
+            String elementname, Consumer<String> valueSetter) {
         return string -> {
             if (string == null || string.trim().isBlank()) {
-                throw new ConfigurationParseException("String value must not be blank");
+                throw new IllegalArgumentException(
+                        "String value of <%s> must not be blank".formatted(elementname));
             }
             valueSetter.accept(string);
         };
@@ -184,19 +214,19 @@ public class ParsingHelper {
             String name, Supplier<String> usageSupplier, int minCount, int maxCount, int count)
             throws ConfigurationParseException {
         if (minCount > 0 && count < minCount) {
-            throw new ConfigurationParseException(
+            throw new IllegalArgumentException(
                     String.format(
                             "At least %d <%s> subelements are required, but encountered %d.\n%s",
                             minCount, name, count, usageSupplier.get()));
         }
         if (maxCount > 0 && count > maxCount) {
-            throw new ConfigurationParseException(
+            throw new IllegalArgumentException(
                     String.format(
                             "At most %d <%s> subelements are allowed, but encountered %d.\n%s",
                             maxCount, name, count, usageSupplier.get()));
         }
         if (maxCount == 0 && count > maxCount) {
-            throw new ConfigurationParseException(
+            throw new IllegalArgumentException(
                     String.format(
                             "No <%s> subelements are allowed, but encountered %d.\n%s",
                             maxCount, name, count, usageSupplier.get()));
@@ -264,7 +294,7 @@ public class ParsingHelper {
         T component = componentParser.apply(config);
         if (required && component == null) {
             throw new ConfigurationParseException(
-                    "Required component not present\n%s".formatted(usageSupplier.get()));
+                    config, "Required component not present\n%s".formatted(usageSupplier.get()));
         }
         componentSetter.accept(component);
     }

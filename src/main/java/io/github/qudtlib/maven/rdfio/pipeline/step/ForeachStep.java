@@ -1,6 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.pipeline.*;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.Values;
@@ -11,10 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.*;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
@@ -60,13 +56,11 @@ public class ForeachStep implements Step {
             throw new MojoExecutionException("Var, values, and body are required in foreach step");
         }
         List<String> graphNames = PipelineHelper.getGraphs(dataset, values.getGraphs());
-        Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
-        Resource varRes = metaModel.createResource(RDFIO.VARIABLE_PREFIX + var);
-        Property valueProp = RDFIO.value;
+
         String previousHash = state.getPreviousStepHash();
         for (String graphName : graphNames) {
-            metaModel.removeAll(varRes, valueProp, null);
-            metaModel.add(varRes, valueProp, ResourceFactory.createResource(graphName));
+            Resource graphNameRes = ResourceFactory.createResource(graphName);
+            PipelineHelper.setPipelineVariable(dataset, state, var, graphNameRes);
             String subPreviousHash = previousHash;
             for (Step step : body) {
                 subPreviousHash = step.calculateHash(subPreviousHash, state);
@@ -109,6 +103,7 @@ public class ForeachStep implements Step {
         ForeachStep step = new ForeachStep();
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Foreach step configuration is missing.
                             %s"""
@@ -122,6 +117,7 @@ public class ForeachStep implements Step {
         Xpp3Dom bodyDom = config.getChild("body");
         if (bodyDom == null || bodyDom.getChildren().length == 0) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Foreach step requires a <body> with a single step.
                             %s"""
@@ -138,6 +134,7 @@ public class ForeachStep implements Step {
                         case "foreach" -> ForeachStep.parse(bodyStepConfig);
                         default ->
                                 throw new ConfigurationParseException(
+                                        config,
                                         "Invalid step type in foreach <body>: "
                                                 + bodyStepType
                                                 + ".\n"

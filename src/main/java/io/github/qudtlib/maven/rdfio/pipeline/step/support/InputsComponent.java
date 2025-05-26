@@ -82,6 +82,7 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
         InputsComponent<T> inputsComponent = new InputsComponent<>(owner);
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             %1$s step input configuration is missing.
                             %s"""
@@ -132,7 +133,6 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
     public List<String> getAllInputGraphs(Dataset dataset, PipelineState state) {
         List<String> allGraphs = new ArrayList<>();
         allGraphs.addAll(state.variables().resolve(this.graphs, dataset));
-        PipelineHelper.ensureGraphsExist(dataset, allGraphs, "input graph");
         allGraphs.addAll(
                 PipelineHelper.getGraphs(
                         dataset, state.variables().resolve(graphSelection, dataset)));

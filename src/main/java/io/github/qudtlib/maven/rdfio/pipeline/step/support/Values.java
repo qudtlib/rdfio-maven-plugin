@@ -19,6 +19,7 @@ public class Values {
     public static Values parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Values configuration is missing.
                             Usage: Provide a <values> element with a <graphs> selection.
@@ -29,6 +30,7 @@ public class Values {
         Xpp3Dom graphsDom = config.getChild("graphs");
         if (graphsDom == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Values requires a <graphs> element.
                             Usage: Specify a graph selection via <graphs>.

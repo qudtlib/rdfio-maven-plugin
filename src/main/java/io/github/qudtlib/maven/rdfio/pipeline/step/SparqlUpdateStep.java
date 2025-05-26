@@ -60,8 +60,14 @@ public class SparqlUpdateStep implements Step {
                 throw new MojoExecutionException(
                         "SPARQL query is required in sparqlUpdate step - neither <sparql> nor <file> element had a query");
             }
+            List<String> graphs = PipelineHelper.getGraphList(dataset);
             SparqlHelper.executeSparqlUpdateWithVariables(
                     sparqlString, dataset, state.getMetadataGraph());
+            List<String> graphsAfterUpdate = PipelineHelper.getGraphList(dataset);
+            graphsAfterUpdate.removeAll(graphs);
+            graphsAfterUpdate.forEach(
+                    newGraph ->
+                            PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, newGraph));
             state.getPrecedingSteps().add(this);
         } catch (Exception e) {
             throw new MojoExecutionException("Error executing SparqlUpdate step", e);
@@ -99,6 +105,7 @@ public class SparqlUpdateStep implements Step {
     public static SparqlUpdateStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                     SparqlUpdate step configuration is missing.
                     %s"""
@@ -111,11 +118,13 @@ public class SparqlUpdateStep implements Step {
         ParsingHelper.optionalStringChild(config, "file", step::setFile, SparqlUpdateStep::usage);
         if (step.getSparql() == null && step.getFile() == null) {
             throw new ConfigurationParseException(
+                    config,
                     "Either a <sparql> or a <file> subelement must be provided\n%s"
                             .formatted(usage()));
         }
         if (step.getSparql() != null && step.getFile() != null) {
             throw new ConfigurationParseException(
+                    config,
                     "Cannot have a <sparql> and a <file> subelement\n%s".formatted(usage()));
         }
         return step;

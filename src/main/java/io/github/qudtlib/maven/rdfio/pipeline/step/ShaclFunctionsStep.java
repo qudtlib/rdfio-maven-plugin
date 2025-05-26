@@ -1,7 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import static io.github.qudtlib.maven.rdfio.pipeline.step.AddStep.requireSourceGraphExists;
-
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
@@ -14,7 +12,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.rdf.model.Model;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
@@ -34,23 +31,16 @@ public class ShaclFunctionsStep implements Step {
     @Override
     public void execute(Dataset dataset, PipelineState state)
             throws RuntimeException, MojoExecutionException {
-        Model targetModel = dataset.getNamedModel(state.getShaclFunctionsGraph());
         List<RelativePath> inputPaths = inputsComponent.getAllInputPaths(dataset, state);
         if (!inputPaths.isEmpty()) {
             for (RelativePath inputPath : inputPaths) {
-                state.files().readRdf(inputPath, targetModel);
+                PipelineHelper.readFileToGraph(
+                        dataset, state, inputPath, state.getShaclFunctionsGraph(), false);
             }
         }
         List<String> inputGraphs = inputsComponent.getAllInputGraphs(dataset, state);
-        if (!inputGraphs.isEmpty()) {
-            for (String sourceGraph : inputGraphs) {
-                requireSourceGraphExists(dataset, sourceGraph);
-                Model sourceModel = dataset.getNamedModel(sourceGraph);
-                if (sourceModel != null) {
-                    targetModel.add(sourceModel);
-                }
-            }
-        }
+        PipelineHelper.addGraphsToGraph(
+                dataset, state.getShaclFunctionsGraph(), inputGraphs, state);
         SparqlHelper.registerShaclFunctions(
                 dataset, state.getShaclFunctionsGraph(), state.getLog());
     }

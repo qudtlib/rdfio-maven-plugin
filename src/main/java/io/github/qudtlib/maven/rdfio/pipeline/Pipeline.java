@@ -93,6 +93,7 @@ public class Pipeline {
             throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Pipeline configuration is missing.
                             %s"""
@@ -103,6 +104,7 @@ public class Pipeline {
         Xpp3Dom idDom = config.getChild("id");
         if (idDom == null || idDom.getValue() == null || idDom.getValue().trim().isEmpty()) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Pipeline ID is required.
                             Usage: Specify a non-empty <id> in the <pipeline> element.
@@ -141,12 +143,14 @@ public class Pipeline {
                             case "shaclInfer" -> ShaclInferStep.parse(stepDom);
                             case "write" -> WriteStep.parse(stepDom);
                             case "foreach" -> ForeachStep.parse(stepDom);
+                            case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
                             default ->
                                     throw new ConfigurationParseException(
+                                            config,
                                             "Unknown step type: "
                                                     + stepType
                                                     + ".\n"
-                                                    + "Usage: Use one of: <add>, <sparqlUpdate>, <savepoint>, <shaclInfer>, <write>, <foreach>.\n"
+                                                    + "Usage: Use one of: <add>, <sparqlUpdate>, <savepoint>, <shaclFunctions>, <shaclInfer>, <write>, <foreach>.\n"
                                                     + "Example: <add><file>data.ttl</file><toGraph>test:graph</toGraph></add>");
                         };
                 steps.add(step);

@@ -1,6 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.*;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
@@ -14,8 +13,6 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -99,15 +96,7 @@ public class WriteStep implements Step {
         }
         String outputFileStr;
         for (String graph : state.variables().resolve(this.graphs, dataset)) {
-            Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
-            StmtIterator it =
-                    metaModel.listStatements(
-                            null, RDFIO.loadsInto, ResourceFactory.createResource(graph));
-            List<String> files = new ArrayList<>();
-            while (it.hasNext()) {
-                String graphPath = it.next().getSubject().toString();
-                files.add(graphPath);
-            }
+            List<String> files = PipelineHelper.getFilePathBoundToGraph(dataset, state, graph);
             if (files.size() == 1) {
                 outputFileStr = files.get(0);
             } else if (files.isEmpty()) {
@@ -142,6 +131,7 @@ public class WriteStep implements Step {
     public static WriteStep parse(Xpp3Dom config) throws ConfigurationParseException {
         if (config == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Write step configuration is missing.
                             %s"""
@@ -154,6 +144,7 @@ public class WriteStep implements Step {
         if (step.graphs.isEmpty()) {
             if (step.toFile == null) {
                 throw new ConfigurationParseException(
+                        config,
                         """
                             No <graph> is specified, data is taken from the default graph.
                             In this case <toFile> must be specified

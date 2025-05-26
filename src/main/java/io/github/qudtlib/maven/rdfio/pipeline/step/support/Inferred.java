@@ -28,6 +28,7 @@ public class Inferred {
     public static Inferred parse(Xpp3Dom config) {
         if (config == null || config.getChildren().length == 0) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Inferred configuration is missing.
                             %s"""
@@ -40,6 +41,7 @@ public class Inferred {
         ParsingHelper.optionalStringChild(config, "file", inferred::setFile, Inferred::usage);
         if (inferred.getFile() == null && inferred.getGraph() == null) {
             throw new ConfigurationParseException(
+                    config,
                     """
                             Inferred must have at least one child element.
                             %s"""

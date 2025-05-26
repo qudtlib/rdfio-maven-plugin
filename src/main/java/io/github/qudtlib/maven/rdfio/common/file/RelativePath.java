@@ -1,6 +1,5 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
-import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -64,7 +63,7 @@ public class RelativePath {
 
     public static RelativePath of(File baseDir, String path) {
         if (path == null || path.trim().isEmpty()) {
-            throw new ConfigurationParseException("Path must not be null or empty");
+            throw new RelativePathException("Path must not be null or empty");
         }
         return new RelativePath(baseDir, path);
     }

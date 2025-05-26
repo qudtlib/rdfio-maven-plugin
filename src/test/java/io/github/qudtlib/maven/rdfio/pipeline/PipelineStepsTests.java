@@ -20,7 +20,6 @@ import java.util.List;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3DomBuilder;
@@ -90,11 +89,10 @@ public class PipelineStepsTests {
                         ResourceFactory.createResource("http://example.org/s"),
                         ResourceFactory.createProperty("http://example.org/p"),
                         ResourceFactory.createResource("http://example.org/o")));
-        Model metaModel = dataset.getNamedModel(state.getMetadataGraph());
-        Resource fileRes = new RelativePath(baseDir, fileArg).getRelativePathAsResource();
-        assertTrue(
-                metaModel.contains(
-                        fileRes, RDFIO.loadsInto, ResourceFactory.createResource("test:graph")));
+        String graphName = "test:graph";
+        System.out.println(PipelineHelper.formatPipelineStateSummary(dataset, state));
+        boolean found = PipelineHelper.isFileBoundToGraph(dataset, state, fileArg, graphName);
+        assertTrue(found);
     }
 
     @Test
@@ -159,12 +157,12 @@ public class PipelineStepsTests {
     }
 
     @Test
-    void testAddStepWithNonExistentGraph() {
+    void testAddStepWithNonExistentGraph() throws MojoExecutionException {
         AddStep step = new AddStep();
         step.getInputsComponent().addGraph("nonexistent:graph");
         step.setToGraph("target:graph");
-
-        assertThrows(PipelineConfigurationExeception.class, () -> step.execute(dataset, state));
+        step.execute(dataset, state);
+        // no exception
     }
 
     @Test
