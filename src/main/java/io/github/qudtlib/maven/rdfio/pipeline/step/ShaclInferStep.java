@@ -1,6 +1,7 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
 import io.github.qudtlib.maven.rdfio.common.LogHelper;
+import io.github.qudtlib.maven.rdfio.common.TimeHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.FileAccess;
@@ -32,7 +33,9 @@ public class ShaclInferStep implements Step {
 
     private Inferred inferred;
 
-    private boolean repeatUntilStable = false;
+    private boolean iterateUntilStable = false;
+
+    private String iterationOutputFilePattern = null;
 
     public String getMessage() {
         return message;
@@ -66,12 +69,20 @@ public class ShaclInferStep implements Step {
         this.inferred = inferred;
     }
 
-    public boolean isRepeatUntilStable() {
-        return repeatUntilStable;
+    public boolean isIterateUntilStable() {
+        return iterateUntilStable;
     }
 
-    public void setRepeatUntilStable(boolean repeatUntilStable) {
-        this.repeatUntilStable = repeatUntilStable;
+    public void setIterateUntilStable(boolean iterateUntilStable) {
+        this.iterateUntilStable = iterateUntilStable;
+    }
+
+    public String getIterationOutputFilePattern() {
+        return iterationOutputFilePattern;
+    }
+
+    public void setIterationOutputFilePattern(String iterationOutputFilePattern) {
+        this.iterationOutputFilePattern = iterationOutputFilePattern;
     }
 
     public static ShaclInferStep parse(Xpp3Dom config) throws ConfigurationParseException {
@@ -104,7 +115,12 @@ public class ShaclInferStep implements Step {
         ParsingHelper.requiredDomChild(
                 config, "inferred", Inferred::parse, step::setInferred, ShaclInferStep::usage);
         ParsingHelper.optionalBooleanChild(
-                config, "repeatUntilStable", step::setRepeatUntilStable, ShaclInferStep::usage);
+                config, "iterateUntilStable", step::setIterateUntilStable, ShaclInferStep::usage);
+        ParsingHelper.optionalStringChild(
+                config,
+                "iterationOutputFilePattern",
+                step::setIterationOutputFilePattern,
+                ShaclInferStep::usage);
 
         if (step.getInferred() == null) {
             throw new ConfigurationParseException(
@@ -129,7 +145,7 @@ public class ShaclInferStep implements Step {
                     - <shapes>: <file>, <files>, <graph>, or <graphs> for SHACL shapes (none to use the default graph as the shapes graph)
                     - <data>: data sources via <file>, <files>, <graph>, or <graphs> (none to use the default graph as the data graph)
                     - <inferred>: output via <graph> and/or <file> (none to write inferred triples to the default graph)
-                    - <repeatUntilStable> (optional): true to repeat inference until no new triples are added
+                    - <iterateUntilStable> (optional): true to repeat inference until no new triples are added
                     NOTE: shacl functions loaded with <shaclFunctions> can be used in the shapes
                 Examples:
                  - <shaclInfer>
@@ -142,7 +158,8 @@ public class ShaclInferStep implements Step {
                        <shapes><graph>shapes:graph</graph></shapes>
                        <data><graph>data:graph</graph></data>
                        <inferred><file>target/inferred.ttl</file></inferred>
-                       <repeatUntilStable>true</repeatUntilStable>
+                       <iterateUntilStable>true</iterateUntilStable>
+                       <iterationOutputFilePattern>target/inferred/inferred-in-iteration-${index}.ttl
                    </shaclInfer>
                  - <shaclInfer/> - use the default graph for data, shapes and as destination for inferred triples.
                """;
@@ -156,7 +173,7 @@ public class ShaclInferStep implements Step {
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (message != null) {
-            state.getLog().info(state.variables().resolve(message, dataset));
+            LogHelper.info(state.getLog(), state.variables().resolve(message, dataset), 1);
         }
         try {
             Model shapesModel = populateShapesModel(dataset, state);
@@ -165,7 +182,9 @@ public class ShaclInferStep implements Step {
             Model newTriples = null;
             int i = 0;
             long lastSize = -1;
+            long start = System.currentTimeMillis();
             boolean modelGrew = false;
+            List<String> iterationTriplesFiles = new ArrayList<>();
             do {
                 i++;
                 if (i > MAX_INFERENCE_ITERATIONS) {
@@ -178,16 +197,59 @@ public class ShaclInferStep implements Step {
                 inferredModel.add(newTriples);
                 modelGrew = lastSize < inferredModel.size();
                 lastSize = inferredModel.size();
-            } while (repeatUntilStable && !newTriples.isEmpty() && modelGrew);
-            if (inferred != null && inferred.getGraph() != null) {
-                dataset.addNamedModel(inferred.getGraph(), inferredModel);
-                PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, inferred.getGraph());
-            } else {
-                dataset.getDefaultModel().add(inferredModel);
+                if (iterationOutputFilePattern != null
+                        && iterateUntilStable
+                        && !newTriples.isEmpty()
+                        && modelGrew) {
+                    String filePathStr =
+                            resolveIterationOutputFilePattern(iterationOutputFilePattern, i);
+                    filePathStr = state.variables().resolve(filePathStr, dataset);
+                    RelativePath filePath = state.files().make(filePathStr);
+                    state.files().writeRdf(filePath, newTriples);
+                    iterationTriplesFiles.add(filePathStr);
+                }
+            } while (iterateUntilStable && !newTriples.isEmpty() && modelGrew);
+            inferredModel.setNsPrefixes(dataModel);
+            LogHelper.info(state.getLog(), "Inferences:", 2);
+            List<String> inferenceStats =
+                    formatInferenceLogStats(inferredModel, i, System.currentTimeMillis() - start);
+            LogHelper.info(state.getLog(), inferenceStats, 3);
+            LogHelper.info(state.getLog(), "Output:", 2);
+            if (inferred != null) {
+                boolean writeReportToDefaultGraph = true;
+                if (inferred.getGraph() != null) {
+                    dataset.addNamedModel(inferred.getGraph(), inferredModel);
+                    LogHelper.info(
+                            state.getLog(),
+                            String.format("%5s: %s", "graph", inferred.getGraph()),
+                            3);
+                    PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, inferred.getGraph());
+                    writeReportToDefaultGraph = false;
+                }
+                if (inferred != null && inferred.getFile() != null) {
+                    RelativePath path = state.files().make(inferred.getFile());
+                    state.files().writeRdf(path, inferredModel);
+                    LogHelper.info(
+                            state.getLog(),
+                            String.format("%5s: %s", "file", path.getRelativePath()),
+                            3);
+                    writeReportToDefaultGraph = false;
+                }
+                if (writeReportToDefaultGraph) {
+                    LogHelper.info(
+                            state.getLog(),
+                            String.format("%5s: %s", "graph", PipelineHelper.formatDefaultGraph()),
+                            3);
+                    dataset.getDefaultModel().add(inferredModel);
+                }
             }
-            if (inferred != null && inferred.getFile() != null) {
-                RelativePath path = state.files().make(inferred.getFile());
-                state.files().writeRdf(path, inferredModel);
+            if (!iterationTriplesFiles.isEmpty()) {
+                LogHelper.info(
+                        state.getLog(),
+                        iterationTriplesFiles.stream()
+                                .map(f -> "%s: %s".formatted("per-iteration file", f))
+                                .toList(),
+                        3);
             }
             state.getPrecedingSteps().add(this);
         } catch (RuntimeException e) {
@@ -196,6 +258,16 @@ public class ShaclInferStep implements Step {
                             .formatted(e.getMessage(), usage()),
                     e);
         }
+    }
+
+    private List<String> formatInferenceLogStats(Model inferredModel, int iterations, long millis) {
+        List<String> ret = new ArrayList<>();
+        ret.add("new triples: " + inferredModel.size());
+        ret.add("       time: " + TimeHelper.makeDurationString(millis));
+        if (iterations > 1) {
+            ret.add(" iterations: " + iterations);
+        }
+        return ret;
     }
 
     private Model populateDataModel(Dataset dataset, PipelineState state)
@@ -222,25 +294,24 @@ public class ShaclInferStep implements Step {
             String fileKind) {
         Model dataModel = ModelFactory.createDefaultModel();
         List<String> entries = new ArrayList<>();
-        String indent = "        ";
         if (inputsComponent == null || inputsComponent.hasNoInputs()) {
             dataModel.add(dataset.getDefaultModel());
-            entries.add(PipelineHelper.formatDefaultGraph(indent));
+            entries.add(PipelineHelper.formatDefaultGraph());
         } else {
             List<RelativePath> dataPaths = inputsComponent.getAllInputPaths(dataset, state);
             FileHelper.ensureRelativePathsExist(dataPaths, fileKind);
             FileAccess.readRdf(dataPaths, dataModel, state);
-            entries.addAll(PipelineHelper.formatPaths(dataPaths, indent));
+            entries.addAll(PipelineHelper.formatPaths(dataPaths));
             List<String> allGraphs = new ArrayList<>();
             allGraphs.addAll(additionalGraphs);
             allGraphs.addAll(inputsComponent.getAllInputGraphs(dataset, state));
             if (allGraphs != null) {
                 allGraphs.forEach(g -> dataModel.add(dataset.getNamedModel(g)));
             }
-            entries.addAll(PipelineHelper.formatGraphs(allGraphs, indent));
+            entries.addAll(PipelineHelper.formatGraphs(allGraphs));
         }
         state.getLog().info("    " + fileKind);
-        LogHelper.info(state.getLog(), entries);
+        LogHelper.info(state.getLog(), entries, 2);
         return dataModel;
     }
 
@@ -267,10 +338,16 @@ public class ShaclInferStep implements Step {
                     digest.update(inferred.getFile().getBytes(StandardCharsets.UTF_8));
                 }
             }
-            digest.update(String.valueOf(repeatUntilStable).getBytes(StandardCharsets.UTF_8));
+            digest.update(String.valueOf(iterateUntilStable).getBytes(StandardCharsets.UTF_8));
+            digest.update(
+                    String.valueOf(iterationOutputFilePattern).getBytes(StandardCharsets.UTF_8));
             return PipelineHelper.serializeMessageDigest(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate hash", e);
         }
+    }
+
+    private String resolveIterationOutputFilePattern(String pattern, int iteration) {
+        return pattern.replaceAll("\\$\\{index}", iteration + "");
     }
 }

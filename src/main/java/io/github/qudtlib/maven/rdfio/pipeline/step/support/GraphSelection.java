@@ -1,8 +1,10 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
+import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class GraphSelection {
@@ -40,44 +42,44 @@ public class GraphSelection {
                     config,
                     """
                             GraphSelection configuration is missing.
-                            Usage: Provide a <graphs> element with at least one <include> pattern.
-                            Example: <graphs><include>vocab:*</include></graphs>""");
+                            %s"""
+                            .formatted(usage()));
         }
 
         GraphSelection selection = new GraphSelection();
-        Xpp3Dom[] includeDoms = config.getChildren("include");
-        if (includeDoms.length == 0) {
-            throw new ConfigurationParseException(
-                    config,
-                    """
-                            GraphSelection requires at least one <include> pattern.
-                            Usage: Specify one or more graph URI patterns.
-                            Example: <include>vocab:*</include>""");
-        }
-        for (Xpp3Dom includeDom : includeDoms) {
-            if (includeDom.getValue() != null && !includeDom.getValue().trim().isEmpty()) {
-                selection.addInclude(includeDom.getValue().trim());
-            } else {
-                throw new ConfigurationParseException(
-                        config,
-                        """
-                                Empty or missing <include> pattern in GraphSelection.
-                                Usage: Provide a non-empty graph URI pattern.
-                                Example: <include>vocab:*</include>""");
-            }
-        }
-
-        Xpp3Dom[] excludeDoms = config.getChildren("exclude");
-        for (Xpp3Dom excludeDom : excludeDoms) {
-            if (excludeDom.getValue() != null && !excludeDom.getValue().trim().isEmpty()) {
-                selection.addExclude(excludeDom.getValue().trim());
-            }
-        }
-
+        ParsingHelper.requiredStringChildren(
+                config, "include", selection::splitAndAddInclude, FileSelection::usage);
+        ParsingHelper.optionalStringChildren(
+                config, "exclude", selection::splitAndAddExclude, FileSelection::usage);
         return selection;
+    }
+
+    private void splitAndAddInclude(String includeStringValue) {
+        splitAndAdd(includeStringValue, this::addInclude);
+    }
+
+    private void splitAndAddExclude(String excludeStringValue) {
+        splitAndAdd(excludeStringValue, this::addExclude);
+    }
+
+    private void splitAndAdd(String stringValue, Consumer<String> setter) {
+        String[] splitValues = stringValue.split("\\s*(,|\\n|,\\s*\\n|\\n\\s*,)\\s*");
+        for (int i = 0; i < splitValues.length; i++) {
+            setter.accept(splitValues[i]);
+        }
     }
 
     public boolean isEmpty() {
         return this.include.isEmpty() && this.exclude.isEmpty();
+    }
+
+    public static String usage() {
+        return """
+                 Usage: Provide a <graphs> element with at least one <include> pattern.
+                            Example:
+                            <graphs>
+                                <include>inferred:*</include>
+                                <exclude>inferred:thatOneGraph</exclude>
+                            </graphs>""";
     }
 }

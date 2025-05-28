@@ -1,5 +1,8 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import io.github.qudtlib.maven.rdfio.common.LogHelper;
+import io.github.qudtlib.maven.rdfio.common.datasetchange.DatasetDifference;
+import io.github.qudtlib.maven.rdfio.common.datasetchange.DatasetState;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import org.apache.jena.query.Dataset;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -16,7 +19,15 @@ public interface Step {
     default void executeAndWrapException(Dataset dataset, PipelineState state)
             throws MojoExecutionException {
         try {
+            DatasetState stateBefore = new DatasetState(dataset);
+            state.getLog().info("");
+            state.getLog().info("Executing <%s> step ".formatted(getElementName()));
             execute(dataset, state);
+            DatasetState stateAfter = new DatasetState(dataset);
+            LogHelper.info(
+                    state.getLog(),
+                    DatasetDifference.of(stateBefore, stateAfter).formatForChange(),
+                    1);
         } catch (RuntimeException e) {
             throw new MojoExecutionException(
                     "Error executing <%s> step: %s".formatted(getElementName(), e.getMessage()), e);

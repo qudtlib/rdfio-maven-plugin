@@ -110,6 +110,22 @@ public class PipelineHelper {
         }
     }
 
+    /**
+     * Prints the model to a String in pretty-printed TTL format.
+     *
+     * @param model The Jena Model to serialize.
+     * @return A String containing the model in TTL format.
+     * @throws RuntimeException if serialization fails.
+     */
+    public static String modelToPrettyTtl(Model model) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            RDFDataMgr.write(out, model, RDFFormat.TURTLE_PRETTY);
+            return out.toString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize model to TRIG", e);
+        }
+    }
+
     public static void ensureGraphsExist(Dataset dataset, List<String> graphs, String kind) {
         for (String graph : graphs) {
             if (!dataset.containsNamedModel(graph)) {
@@ -403,27 +419,24 @@ public class PipelineHelper {
         return found;
     }
 
-    public static String formatDefaultGraph(String indent) {
-        return indent + "[default graph]";
+    public static String formatDefaultGraph() {
+        return "[default graph]";
     }
 
-    public static List<String> formatPaths(List<RelativePath> paths, String indent) {
+    public static List<String> formatPaths(List<RelativePath> paths) {
         if (paths != null && !paths.isEmpty()) {
             return paths.stream()
                     .map(RelativePath::getRelativePath)
                     .sorted()
-                    .map(s -> String.format("%s        file: %s", indent, s))
+                    .map(s -> String.format(" file: %s", s))
                     .toList();
         }
         return List.of();
     }
 
-    public static List<String> formatGraphs(List<String> graphs, String indent) {
+    public static List<String> formatGraphs(List<String> graphs) {
         if (graphs != null && !graphs.isEmpty()) {
-            return graphs.stream()
-                    .sorted()
-                    .map(s -> String.format("%s       graph: %s", indent, s))
-                    .toList();
+            return graphs.stream().sorted().map(s -> String.format("graph: %s", s)).toList();
         }
         return List.of();
     }

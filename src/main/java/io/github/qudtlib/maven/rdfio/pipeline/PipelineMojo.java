@@ -7,10 +7,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -43,8 +40,15 @@ public class PipelineMojo extends AbstractMojo {
      * If <code>true</code>, the pipeline will disregard any valid savepoints and run from the
      * beginning.
      */
-    @Parameter(property = "rdfio.pipeline.forceRun", defaultValue = "false")
-    private Object forceRun;
+    @Parameter(property = "rdfio.pipeline.forceRun")
+    private String forceRun;
+
+    /**
+     * If set to the id of a **valid** savepoint, pipeline execution will start at that savepoint,
+     * instead of the latest valid one. Note: rdfio.pipeline.forceRun overrides this setting.
+     */
+    @Parameter(property = "rdfio.pipeline.resumeAtSavepointId")
+    private String resumeAtSavepointId;
 
     private Xpp3Dom configuration;
 
@@ -95,14 +99,17 @@ public class PipelineMojo extends AbstractMojo {
                     pipeline.setForceRun(true);
                 }
             } else {
-                if (pipeline.isForceRun()) {
-                    getLog().info(
-                                    "Pipeline '%s' is configured to run from the start, ignoring any valid savepoints (can be overriddden using maven property '-Drdfio.pipeline.forceRun=false')"
-                                            .formatted(pipeline.getId()));
-                } else {
-                    getLog().info(
-                                    "Pipeline '%s' is configured to start from the lastest valid savepoint (can be overriddden using maven property '-Drdfio.pipeline.forceRun')"
-                                            .formatted(pipeline.getId()));
+                // resumeAtSavepointId overrides static pipeline forceRun Configuration
+                if (resumeAtSavepointId == null) {
+                    if (pipeline.isForceRun()) {
+                        getLog().info(
+                                        "Pipeline '%s' is configured to run from the start, ignoring any valid savepoints (to override, use '-Drdfio.pipeline.forceRun=false' or '-Drdfio.pipeline.resumeAtSavepointId=(pipelineId:)savepointId,...')"
+                                                .formatted(pipeline.getId()));
+                    } else {
+                        getLog().info(
+                                        "Pipeline '%s' is configured to start from the lastest valid savepoint (to override, use '-Drdfio.pipeline.forceRun' or or '-Drdfio.pipeline.resumeAtSavepointId=[(pipelineId:)savepointId,...]')"
+                                                .formatted(pipeline.getId()));
+                    }
                 }
             }
 
@@ -125,6 +132,7 @@ public class PipelineMojo extends AbstractMojo {
                             getLog(),
                             pipeline.getMetadataGraph(),
                             null);
+            updatePipelineState(state, project);
             state.setAllowLoadingFromSavepoint(!pipeline.isForceRun());
 
             int startIndex = -1;
@@ -138,22 +146,96 @@ public class PipelineMojo extends AbstractMojo {
                     stepHashes.add(hash);
                     previousHash = hash;
                 }
+                if (resumeAtSavepointId != null) {
+                    String[] savepointIdsArr = resumeAtSavepointId.split(",");
+                    Set<String> savepointIds =
+                            Arrays.stream(savepointIdsArr)
+                                    .filter(
+                                            sp ->
+                                                    !sp.contains(":")
+                                                            || sp.startsWith(
+                                                                    pipeline.getId() + ":"))
+                                    .map(sp -> sp.replaceFirst("$[^:]+:", ""))
+                                    .collect(Collectors.toSet());
+                    // exclude all savepoints of other pipelines and remove any pipeline prefix
+                    resumeAtSavepointId = savepointIds.stream().collect(Collectors.joining(","));
+                    getLog().info(
+                                    "Attempting to resume pipeline execution at <savepoint>(s) %s (as instructed via property rdfio.pipeline.resumeAtSavepointId) ..."
+                                            .formatted(resumeAtSavepointId));
 
-                // Check savepoints in reverse order
-                for (int i = pipeline.getSteps().size() - 1; i >= 0; i--) {
-                    Step step = pipeline.getSteps().get(i);
-                    if (step instanceof SavepointStep savepoint) {
-                        if (savepoint.isValid(state, stepHashes.get(i))) {
-                            startIndex = i; // Start with the valid savepoint
-                            getLog().info(
-                                            "Valid <savepoint> '%s' found (step %d) in pipeline '%s', resuming pipeline execution from there."
-                                                    .formatted(
-                                                            savepoint.getId(),
-                                                            (i + 1),
-                                                            pipeline.getId()));
-                            break;
+                    int resumeSavepointIndex = -1;
+                    SavepointStep resumeSavepoint = null;
+                    for (int i = 0; i < pipeline.getSteps().size(); i++) {
+                        Step step = pipeline.getSteps().get(i);
+                        if (step instanceof SavepointStep) {
+                            if (savepointIds.contains(((SavepointStep) step).getId())) {
+                                resumeSavepoint = (SavepointStep) step;
+                                resumeSavepointIndex = i;
+                                break;
+                            }
                         }
                     }
+                    if (resumeSavepoint != null) {
+                        if (!resumeSavepoint.isEnabled()) {
+                            getLog().warn(
+                                            "<savepoint> %s (step %d/%d) is not enabled, using standard <savepoint> selection algorithm (latest valid <savepoint>)"
+                                                    .formatted(
+                                                            resumeAtSavepointId,
+                                                            resumeSavepointIndex,
+                                                            pipeline.getSteps().size()));
+                        }
+                        if (resumeSavepoint.isValid(state, stepHashes.get(resumeSavepointIndex))) {
+                            getLog().info(
+                                            "<savepoint> %s (step %d/%d) is valid, resuming pipeline execution"
+                                                    .formatted(
+                                                            resumeAtSavepointId,
+                                                            resumeSavepointIndex,
+                                                            pipeline.getSteps().size()));
+                            startIndex = resumeSavepointIndex;
+                        } else {
+                            getLog().info(
+                                            "<savepoint> %s (step %d/%d) is not valid, using standard <savepoint> selection algorithm (latest valid <savepoint>)"
+                                                    .formatted(
+                                                            resumeAtSavepointId,
+                                                            resumeSavepointIndex,
+                                                            pipeline.getSteps().size()));
+                        }
+                    } else {
+                        getLog().warn(
+                                        "No <savepoint> with id(s) %s found, using standard <savepoint> selection algorithm (latest valid <savepoint>)"
+                                                .formatted(resumeAtSavepointId));
+                    }
+                }
+                // standard savepoint selection (latest valid savepoint)
+                // if user-provided resumeAtSavepointId was invalid
+                if (startIndex == -1) {
+                    // Check savepoints in reverse order
+                    for (int i = pipeline.getSteps().size() - 1; i >= 0; i--) {
+                        Step step = pipeline.getSteps().get(i);
+                        if (step instanceof SavepointStep savepoint) {
+                            if (savepoint.isValid(state, stepHashes.get(i))) {
+                                startIndex = i; // Start with the valid savepoint
+                                getLog().info(
+                                                "Latest valid <savepoint> is '%s' (step %d/%d) ..."
+                                                        .formatted(
+                                                                savepoint.getId(),
+                                                                (i + 1),
+                                                                pipeline.getSteps().size(),
+                                                                pipeline.getId()));
+                                if (i + 1 < pipeline.getSteps().size()) {
+                                    getLog().info("Resuming pipeline at savepoint");
+                                } else {
+                                    getLog().info(
+                                                    "Savepoint is at end of pipeline, nothing to do.");
+                                    return;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (startIndex == -1 || startIndex == 0) {
+                    getLog().info("No valid savepoint found, running the whole pipeline");
                 }
             }
             // Execute pipeline from startIndex
@@ -174,6 +256,21 @@ public class PipelineMojo extends AbstractMojo {
             }
         } catch (Throwable throwable) {
             throw new MojoExecutionException("Error executing PipelineMojo", throwable);
+        }
+    }
+
+    private void updatePipelineState(PipelineState state, MavenProject project) {
+        if (project == null) {
+            return;
+        }
+        Properties properties = project.getProperties();
+        String logSeverity = properties.getProperty("shacl.severity.log");
+        if (logSeverity != null) {
+            state.setDefaultShaclLogSeverity(logSeverity);
+        }
+        String failSeverity = properties.getProperty("shacl.severity.fail");
+        if (failSeverity != null) {
+            state.setDefaultShaclFailSeverity(failSeverity);
         }
     }
 

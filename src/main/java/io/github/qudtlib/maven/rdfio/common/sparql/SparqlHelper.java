@@ -15,6 +15,8 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.sparql.function.FunctionRegistry;
 import org.apache.jena.update.UpdateAction;
+import org.apache.jena.update.UpdateFactory;
+import org.apache.jena.update.UpdateRequest;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -92,12 +94,14 @@ public class SparqlHelper {
             String sparql, Dataset dataset, String metadataGraph) throws MojoExecutionException {
         sparql = addPrefixes(sparql, dataset);
         QuerySolutionMap bindings = extractVariableBindings(dataset, metadataGraph);
+        UpdateRequest parsedUpdate;
         try {
-            UpdateAction.parseExecute(sparql, dataset, bindings);
+            parsedUpdate = UpdateFactory.create(sparql);
         } catch (Exception e) {
             throw new MojoExecutionException(
-                    "Failed to execute SPARQL update:\n" + withLineNumbers(sparql), e);
+                    "Failed to execute SPARQL update:\n" + withLineNumbers(sparql) + "\n", e);
         }
+        UpdateAction.execute(parsedUpdate, dataset, bindings);
     }
 
     /**

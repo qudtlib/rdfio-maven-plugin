@@ -259,11 +259,11 @@ public class ShaclInferStepExecuteTests {
     }
 
     @Test
-    void testShaclInferStepWithRepeatUntilStable() throws Exception {
+    void testShaclInferStepWithIterateUntilStable() throws Exception {
         String xml =
                 """
                 <shaclInfer>
-                    <repeatUntilStable>true</repeatUntilStable>
+                    <iterateUntilStable>true</iterateUntilStable>
                     <shapes>
                         <file>src/test/resources/shapes.ttl</file>
                     </shapes>

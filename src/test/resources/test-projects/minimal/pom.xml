@@ -78,6 +78,40 @@
                             </pipeline>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>test3</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>pipeline</goal>
+                        </goals>
+                        <configuration>
+                            <pipeline>
+                                <id>test3</id>
+                                <steps>
+                                    <add>
+                                        <file>src/rdf/starwars.ttl</file>
+                                        <toGraph>graph:starwars</toGraph>
+                                    </add>
+                                    <add>
+                                        <file>src/rdf/input.ttl</file>
+                                        <toGraph>graph:input</toGraph>
+                                    </add>
+                                    <sparqlUpdate>
+                                        <sparql>
+                                            <![CDATA[
+                                                INSERT {
+                                                    GRAPH <graph:starwars> { ?s ?p ?o }
+                                                }
+                                                WHERE {
+                                                    GRAPH <graph:input> { ?s ?p ?o }
+                                                }
+                                            ]]>
+                                        </sparql>
+                                    </sparqlUpdate>
+                                </steps>
+                            </pipeline>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

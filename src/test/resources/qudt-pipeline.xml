@@ -128,7 +128,7 @@
         </add>
         <shaclInfer>
             <message>Inferring qudt:conversionMultiplier</message>
-            <repeatUntilStable>true</repeatUntilStable>
+            <iterateUntilStable>true</iterateUntilStable>
             <shapes>
                 <file>target/srcgen/conversionMultiplier/infer.ttl</file>
                 <graph>shacl:qudtFunctions</graph>

@@ -13,9 +13,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
@@ -53,8 +55,11 @@ public class FileAccess {
         for (RelativePath path : paths) {
             File file = validatePath(path, state);
             try (FileInputStream fis = new FileInputStream(file)) {
+                Model newModel = ModelFactory.createDefaultModel();
                 RDFDataMgr.read(
                         model, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TTL));
+                model.add(newModel);
+                model.setNsPrefixes(newModel.getNsPrefixMap());
             } catch (IOException e) {
                 throw new FileAccessException("Failed to load RDF file: " + path, e);
             }
@@ -69,6 +74,13 @@ public class FileAccess {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
+        Iterator<String> it = dataset.listNames();
+        while (it.hasNext()) {
+            String graphName = it.next();
+            Model graph = dataset.getNamedModel(graphName);
+            dataset.getPrefixMapping().setNsPrefixes(graph);
+        }
+        dataset.getPrefixMapping().setNsPrefixes(dataset.getDefaultModel());
         state.getLog().debug("Writing RDF dataset to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, dataset, lang);

@@ -44,6 +44,11 @@
             <version>4.10.0</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>jena-shacl</artifactId>
+            <version>4.10.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.topbraid</groupId>
             <artifactId>shacl</artifactId>
             <version>1.4.3</version>

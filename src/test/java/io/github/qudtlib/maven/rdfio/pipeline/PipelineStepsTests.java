@@ -125,7 +125,7 @@ public class PipelineStepsTests {
     void testAddStepWithEmptyFiles() throws MojoExecutionException {
         AddStep step = new AddStep();
         FileSelection files = new FileSelection();
-        files.setInclude("src/test/resources/dontfind/*.ttl");
+        files.addInclude("src/test/resources/dontfind/*.ttl");
         step.getInputsComponent().setFileSelection(files);
         step.setToGraph("test:graph");
 
@@ -489,10 +489,10 @@ public class PipelineStepsTests {
                 ResourceFactory.createResource("http://example.org/s"),
                 ResourceFactory.createProperty("http://example.org/p"),
                 ResourceFactory.createResource("http://example.org/o"));
+        model.setNsPrefix("ex", "http://example.org/");
         SavepointStep step = new SavepointStep();
         step.setId("sp001");
         step.setEnabled(true);
-
         step.execute(dataset, state);
 
         RelativePath hashFile = state.getSavepointCache().getHashFile("sp001");

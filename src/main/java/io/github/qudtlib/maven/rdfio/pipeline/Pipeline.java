@@ -141,6 +141,7 @@ public class Pipeline {
                             case "sparqlUpdate" -> SparqlUpdateStep.parse(stepDom);
                             case "savepoint" -> SavepointStep.parse(stepDom);
                             case "shaclInfer" -> ShaclInferStep.parse(stepDom);
+                            case "shaclValidate" -> ShaclValidateStep.parse(stepDom);
                             case "write" -> WriteStep.parse(stepDom);
                             case "foreach" -> ForeachStep.parse(stepDom);
                             case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
@@ -150,7 +151,7 @@ public class Pipeline {
                                             "Unknown step type: "
                                                     + stepType
                                                     + ".\n"
-                                                    + "Usage: Use one of: <add>, <sparqlUpdate>, <savepoint>, <shaclFunctions>, <shaclInfer>, <write>, <foreach>.\n"
+                                                    + "Usage: Use one of: <add>, <sparqlUpdate>, <savepoint>, <shaclFunctions>, <shaclInfer>, <shaclValidate>, <write>, <foreach>.\n"
                                                     + "Example: <add><file>data.ttl</file><toGraph>test:graph</toGraph></add>");
                         };
                 steps.add(step);

@@ -68,6 +68,7 @@ public class SparqlUpdateStep implements Step {
             graphsAfterUpdate.forEach(
                     newGraph ->
                             PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, newGraph));
+
             state.getPrecedingSteps().add(this);
         } catch (Exception e) {
             throw new MojoExecutionException("Error executing SparqlUpdate step", e);

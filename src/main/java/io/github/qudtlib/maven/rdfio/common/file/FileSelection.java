@@ -1,8 +1,10 @@
 package io.github.qudtlib.maven.rdfio.common.file;
 
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
@@ -28,12 +30,12 @@ public class FileSelection {
     }
 
     @Parameter
-    public void setInclude(String include) {
+    public void addInclude(String include) {
         this.include.add(include);
     }
 
     @Parameter
-    public void setExclude(String exclude) {
+    public void addExclude(String exclude) {
         this.exclude.add(exclude);
     }
 
@@ -61,36 +63,36 @@ public class FileSelection {
         }
 
         FileSelection selection = new FileSelection();
-        Xpp3Dom[] includeDoms = config.getChildren("include");
-        if (includeDoms.length == 0) {
-            throw new ConfigurationParseException(
-                    config,
-                    """
-                            FileSelection requires at least one <include> pattern.
-                            Usage: Specify one or more Ant-style include patterns.
-                            Example: <include>**/*.ttl</include>""");
-        }
-        for (Xpp3Dom includeDom : includeDoms) {
-            if (includeDom.getValue() != null && !includeDom.getValue().trim().isEmpty()) {
-                selection.setInclude(includeDom.getValue().trim());
-            } else {
-                throw new ConfigurationParseException(
-                        config,
-                        """
-                                Empty or missing <include> pattern in FileSelection.
-                                Usage: Provide a non-empty Ant-style pattern.
-                                Example: <include>**/*.ttl</include>""");
-            }
-        }
-
-        Xpp3Dom[] excludeDoms = config.getChildren("exclude");
-        for (Xpp3Dom excludeDom : excludeDoms) {
-            if (excludeDom.getValue() != null && !excludeDom.getValue().trim().isEmpty()) {
-                selection.setExclude(excludeDom.getValue().trim());
-            }
-        }
-
+        ParsingHelper.requiredStringChildren(
+                config, "include", selection::splitAndAddInclude, FileSelection::usage);
+        ParsingHelper.optionalStringChildren(
+                config, "exclude", selection::splitAndAddExclude, FileSelection::usage);
         return selection;
+    }
+
+    private void splitAndAddInclude(String includeStringValue) {
+        splitAndAdd(includeStringValue, this::addInclude);
+    }
+
+    private void splitAndAddExclude(String excludeStringValue) {
+        splitAndAdd(excludeStringValue, this::addExclude);
+    }
+
+    private void splitAndAdd(String stringValue, Consumer<String> setter) {
+        String[] splitValues = stringValue.split("\\s*(,|\\n|,\\s*\\n|\\n\\s*,)\\s*");
+        for (int i = 0; i < splitValues.length; i++) {
+            setter.accept(splitValues[i]);
+        }
+    }
+
+    public static String usage() {
+        return """
+                 Usage: Provide a <files> element with at least one <include> pattern.
+                            Example:
+                            <files>
+                                <include>**/*.ttl</include>
+                                <exclude>**/temp/*.ttl</exclude>
+                            </files>""";
     }
 
     public boolean isEmpty() {

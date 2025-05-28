@@ -50,7 +50,7 @@ public class ShaclInferStepParseTests {
         assertEquals(
                 "inferred:graph", step.getInferred().getGraph(), "Inferred graph should match");
         assertNull(step.getInferred().getFile(), "Inferred file should be null");
-        assertFalse(step.isRepeatUntilStable(), "repeatUntilStable should be false by default");
+        assertFalse(step.isIterateUntilStable(), "iterateUntilStable should be false by default");
         assertNull(step.getMessage(), "Message should be null");
     }
 
@@ -82,7 +82,7 @@ public class ShaclInferStepParseTests {
                         <graph>inferred:graph</graph>
                         <file>target/inferred.ttl</file>
                     </inferred>
-                    <repeatUntilStable>true</repeatUntilStable>
+                    <iterateUntilStable>true</iterateUntilStable>
                 </shaclInfer>
                 """;
         Xpp3Dom config = buildConfig(xml);
@@ -144,7 +144,7 @@ public class ShaclInferStepParseTests {
                 "inferred:graph", step.getInferred().getGraph(), "Inferred graph should match");
         assertEquals(
                 "target/inferred.ttl", step.getInferred().getFile(), "Inferred file should match");
-        assertTrue(step.isRepeatUntilStable(), "repeatUntilStable should be true");
+        assertTrue(step.isIterateUntilStable(), "iterateUntilStable should be true");
     }
 
     @Test
@@ -179,7 +179,7 @@ public class ShaclInferStepParseTests {
         assertNull(step.getInferred().getGraph(), "Inferred graph should be null");
         assertEquals(
                 "target/inferred.ttl", step.getInferred().getFile(), "Inferred file should match");
-        assertFalse(step.isRepeatUntilStable(), "repeatUntilStable should be false");
+        assertFalse(step.isIterateUntilStable(), "iterateUntilStable should be false");
     }
 
     @Test
@@ -423,7 +423,7 @@ public class ShaclInferStepParseTests {
                         <graph>  inferred:graph  </graph>
                         <file>  target/inferred.ttl  </file>
                     </inferred>
-                    <repeatUntilStable>  true  </repeatUntilStable>
+                    <iterateUntilStable>  true  </iterateUntilStable>
                 </shaclInfer>
                 """;
         Xpp3Dom config = buildConfig(xml);
@@ -443,11 +443,11 @@ public class ShaclInferStepParseTests {
                 "target/inferred.ttl",
                 step.getInferred().getFile(),
                 "Inferred file should be trimmed");
-        assertTrue(step.isRepeatUntilStable(), "repeatUntilStable should be true");
+        assertTrue(step.isIterateUntilStable(), "iterateUntilStable should be true");
     }
 
     @Test
-    void testParseShaclInferStepInvalidRepeatUntilStable() throws Exception {
+    void testParseShaclInferStepInvalidIterateUntilStable() throws Exception {
         String xml =
                 """
                 <shaclInfer>
@@ -460,7 +460,7 @@ public class ShaclInferStepParseTests {
                     <inferred>
                         <graph>inferred:graph</graph>
                     </inferred>
-                    <repeatUntilStable>invalid</repeatUntilStable>
+                    <iterateUntilStable>invalid</iterateUntilStable>
                 </shaclInfer>
                 """;
         Xpp3Dom config = buildConfig(xml);
@@ -468,7 +468,7 @@ public class ShaclInferStepParseTests {
 
         // Boolean.parseBoolean("invalid") returns false
         assertFalse(
-                step.isRepeatUntilStable(), "Invalid repeatUntilStable should default to false");
+                step.isIterateUntilStable(), "Invalid iterateUntilStable should default to false");
     }
 
     @Test

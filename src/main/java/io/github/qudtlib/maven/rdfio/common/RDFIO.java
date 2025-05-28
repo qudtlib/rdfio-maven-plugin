@@ -25,9 +25,10 @@ public final class RDFIO {
     /** Resource prefix for variables (e.g., variables/fileGraph). */
     public static final String VARIABLE_PREFIX = NS + "variables/";
 
-    public static final Resource metadataGraph = ResourceFactory.createResource(NS + "metadata");
+    public static final Resource metadataGraph =
+            ResourceFactory.createResource("rdfio:pipeline:metadata");
     public static final Resource shaclFunctionsGraph =
-            ResourceFactory.createResource(NS + "shaclFunctions");
+            ResourceFactory.createResource("rdfio:pipeline:userDefinedShaclFunctions");
 
     // Private constructor to prevent instantiation
     private RDFIO() {}

@@ -29,6 +29,8 @@ public class PipelineState {
     private Log log;
     private Files files;
     private PipelineState.Variables variables;
+    private String defaultShaclLogSeverity = null;
+    private String defaultShaclFailSeverity = null;
 
     public PipelineState(
             String pipelineId,
@@ -103,12 +105,28 @@ public class PipelineState {
         return pipelineId;
     }
 
+    public String getDefaultShaclLogSeverity() {
+        return defaultShaclLogSeverity;
+    }
+
+    public void setDefaultShaclLogSeverity(String defaultShaclLogSeverity) {
+        this.defaultShaclLogSeverity = defaultShaclLogSeverity;
+    }
+
     public void requireUnderBaseDir(File file) throws ForbiddenFilePathException {
         if (!FileHelper.isUnderDirectory(baseDir, file)) {
             throw new ForbiddenFilePathException(
                     "Cannot access file %s as it is not under baseDir %s"
                             .formatted(file, baseDir.getAbsolutePath()));
         }
+    }
+
+    public String getDefaultShaclFailSeverity() {
+        return defaultShaclFailSeverity;
+    }
+
+    public void setDefaultShaclFailSeverity(String defaultShaclFailSeverity) {
+        this.defaultShaclFailSeverity = defaultShaclFailSeverity;
     }
 
     public void requireUnderBaseDir(RelativePath file) throws ForbiddenFilePathException {
