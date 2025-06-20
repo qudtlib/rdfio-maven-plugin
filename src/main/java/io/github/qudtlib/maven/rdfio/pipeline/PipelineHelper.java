@@ -148,7 +148,7 @@ public class PipelineHelper {
             Dataset dataset, PipelineState state, RelativePath inputPath, String targetGraph) {
         Resource fileRes = inputPath.getRelativePathAsResource();
         if (isGraphUnbound(dataset, state, targetGraph)) {
-            state.getLog()
+            state.log()
                     .debug(
                             """
                            Binding
@@ -164,7 +164,7 @@ public class PipelineHelper {
     public static void bindGraphToNoFileIfUnbound(
             Dataset dataset, PipelineState state, String targetGraph) {
         if (isGraphUnbound(dataset, state, targetGraph)) {
-            state.getLog()
+            state.log()
                     .debug(
                             """
                              Binding
@@ -203,7 +203,7 @@ public class PipelineHelper {
             Dataset dataset, String sourceGraph, String targetGraph, PipelineState state) {
         Model sourceModel = dataset.getNamedModel(sourceGraph);
         Model targetModel = dataset.getNamedModel(targetGraph);
-        state.getLog()
+        state.log()
                 .debug(
                         """
                 Copying
@@ -244,7 +244,7 @@ public class PipelineHelper {
 
     public static void addDefaultModelToGraph(
             Dataset dataset, PipelineState state, String toGraph) {
-        state.getLog()
+        state.log()
                 .debug(
                         """
                    Copying
@@ -269,7 +269,7 @@ public class PipelineHelper {
         }
         List<File> files = List.of(inputPath.resolve());
         FileHelper.ensureFilesExist(files, "input");
-        state.getLog()
+        state.log()
                 .debug(
                         """
          Loading
@@ -288,7 +288,7 @@ public class PipelineHelper {
 
     public static void setPipelineVariable(
             Dataset dataset, PipelineState state, String variableName, RDFNode value) {
-        state.getLog()
+        state.log()
                 .debug(
                         """
                           Setting pipeline variable

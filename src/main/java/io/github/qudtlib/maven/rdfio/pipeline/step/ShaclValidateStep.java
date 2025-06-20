@@ -1,7 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import io.github.qudtlib.maven.rdfio.common.LogHelper;
-import io.github.qudtlib.maven.rdfio.common.TimeHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.FileAccess;
@@ -12,6 +10,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ResultSeverityConfig;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ValidationReportComponent;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
+import io.github.qudtlib.maven.rdfio.pipeline.support.VariableResolver;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -187,13 +186,13 @@ public class ShaclValidateStep implements Step {
 
     @Override
     public String getElementName() {
-        return "shaclInfer";
+        return "shaclValidate";
     }
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (message != null) {
-            state.getLog().info(state.variables().resolve(message, dataset));
+            state.log().info(state.variables().resolve(message, dataset));
         }
         try {
             Model shapesModel = populateShapesModel(dataset, state);
@@ -207,40 +206,45 @@ public class ShaclValidateStep implements Step {
                             new ValidationEngineConfiguration()
                                     .setReportDetails(true)
                                     .setValidateShapes(false));
-            LogHelper.info(state.getLog(), "ValidationReport:", 1);
+            state.log().info("ValidationReport:", 1);
             ValidationReportSummary summary =
                     summarizeValidationReport(
                             validationReport.getModel(), System.currentTimeMillis() - start);
             List<String> validationStats = formatValidationReportSummary(summary);
-            LogHelper.info(state.getLog(), validationStats, 2);
-            LogHelper.info(state.getLog(), "Output:", 1);
+            state.log().info(validationStats, 2);
+            state.log().info("Output:", 1);
             if (validationReportComponent != null) {
                 boolean outputToDefaultGraph = true;
                 if (validationReportComponent.getGraph() != null) {
-                    dataset.addNamedModel(
-                            validationReportComponent.getGraph(), validationReport.getModel());
-                    LogHelper.info(
-                            state.getLog(),
-                            String.format("%5s: %s", "graph", validationReportComponent.getGraph()),
-                            2);
-                    PipelineHelper.bindGraphToNoFileIfUnbound(
-                            dataset, state, validationReportComponent.getGraph());
+                    String graphName =
+                            VariableResolver.resolveVariables(
+                                    validationReportComponent.getGraph(),
+                                    dataset,
+                                    state.getMetadataGraph());
+                    dataset.addNamedModel(graphName, validationReport.getModel());
+                    state.log().info(String.format("%5s: %s", "graph", graphName), 2);
+                    PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, graphName);
                     outputToDefaultGraph = false;
                 }
                 if (validationReportComponent.getFile() != null) {
-                    RelativePath path = state.files().make(validationReportComponent.getFile());
+                    RelativePath path =
+                            state.files()
+                                    .make(
+                                            VariableResolver.resolveVariables(
+                                                    validationReportComponent.getFile(),
+                                                    dataset,
+                                                    state.getMetadataGraph()));
                     state.files().writeRdf(path, validationReport.getModel());
-                    LogHelper.info(
-                            state.getLog(),
-                            String.format("%5s: %s", "file", path.getRelativePath()),
-                            2);
+                    state.log().info(String.format("%5s: %s", "file", path.getRelativePath()), 2);
                     outputToDefaultGraph = false;
                 }
                 if (outputToDefaultGraph) {
-                    LogHelper.info(
-                            state.getLog(),
-                            String.format("%5s: %s", "graph", PipelineHelper.formatDefaultGraph()),
-                            2);
+                    state.log()
+                            .info(
+                                    String.format(
+                                            "%5s: %s",
+                                            "graph", PipelineHelper.formatDefaultGraph()),
+                                    2);
                     dataset.getDefaultModel().add(validationReport.getModel());
                 }
             }
@@ -304,7 +308,6 @@ public class ShaclValidateStep implements Step {
                 " failOnSeverity: "
                         + this.failOnSeverityParsed
                         + " (change using property shacl.severity.fail)");
-        ret.add("     time taken: " + TimeHelper.makeDurationString(summary.durationInMillis));
         ret.add(
                 "        results: "
                         + summary.numResults
@@ -372,8 +375,8 @@ public class ShaclValidateStep implements Step {
             }
             entries.addAll(PipelineHelper.formatGraphs(allGraphs));
         }
-        state.getLog().info("    " + fileKind);
-        LogHelper.info(state.getLog(), entries, 2);
+        state.log().info("    " + fileKind);
+        state.log().info(entries, 2);
         return dataModel;
     }
 

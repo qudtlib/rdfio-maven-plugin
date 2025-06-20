@@ -21,6 +21,8 @@ public class SparqlUpdateStep implements Step {
 
     private String file;
 
+    private String message;
+
     public String getSparql() {
         return sparql;
     }
@@ -37,6 +39,14 @@ public class SparqlUpdateStep implements Step {
         this.file = file;
     }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     @Override
     public String getElementName() {
         return "sparqlUpdate";
@@ -45,6 +55,9 @@ public class SparqlUpdateStep implements Step {
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         try {
+            if (message != null) {
+                state.log().info(message, 1);
+            }
             String sparqlString = this.sparql;
             if (sparqlString == null && this.file != null) {
                 RelativePath sparqlFile =
@@ -114,6 +127,8 @@ public class SparqlUpdateStep implements Step {
         }
 
         SparqlUpdateStep step = new SparqlUpdateStep();
+        ParsingHelper.optionalStringChild(
+                config, "message", step::setMessage, SparqlUpdateStep::usage);
         ParsingHelper.optionalStringChild(
                 config, "sparql", step::setSparql, SparqlUpdateStep::usage);
         ParsingHelper.optionalStringChild(config, "file", step::setFile, SparqlUpdateStep::usage);

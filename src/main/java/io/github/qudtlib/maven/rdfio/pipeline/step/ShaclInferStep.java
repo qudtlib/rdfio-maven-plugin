@@ -1,7 +1,5 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
-import io.github.qudtlib.maven.rdfio.common.LogHelper;
-import io.github.qudtlib.maven.rdfio.common.TimeHelper;
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.FileAccess;
@@ -11,6 +9,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.support.Inferred;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
+import io.github.qudtlib.maven.rdfio.pipeline.support.VariableResolver;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -146,6 +145,8 @@ public class ShaclInferStep implements Step {
                     - <data>: data sources via <file>, <files>, <graph>, or <graphs> (none to use the default graph as the data graph)
                     - <inferred>: output via <graph> and/or <file> (none to write inferred triples to the default graph)
                     - <iterateUntilStable> (optional): true to repeat inference until no new triples are added
+                    - <iterationOutputFilePattern> (optional): pattern in which the variable ${index} is replaced by the iteration index,
+                      producing an output file name for the iteration's inferences
                     NOTE: shacl functions loaded with <shaclFunctions> can be used in the shapes
                 Examples:
                  - <shaclInfer>
@@ -173,7 +174,7 @@ public class ShaclInferStep implements Step {
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (message != null) {
-            LogHelper.info(state.getLog(), state.variables().resolve(message, dataset), 1);
+            state.log().info(state.variables().resolve(message, dataset), 1);
         }
         try {
             Model shapesModel = populateShapesModel(dataset, state);
@@ -202,7 +203,11 @@ public class ShaclInferStep implements Step {
                         && !newTriples.isEmpty()
                         && modelGrew) {
                     String filePathStr =
-                            resolveIterationOutputFilePattern(iterationOutputFilePattern, i);
+                            VariableResolver.resolveVariables(
+                                    resolveIterationOutputFilePattern(
+                                            iterationOutputFilePattern, i),
+                                    dataset,
+                                    state.getMetadataGraph());
                     filePathStr = state.variables().resolve(filePathStr, dataset);
                     RelativePath filePath = state.files().make(filePathStr);
                     state.files().writeRdf(filePath, newTriples);
@@ -210,46 +215,50 @@ public class ShaclInferStep implements Step {
                 }
             } while (iterateUntilStable && !newTriples.isEmpty() && modelGrew);
             inferredModel.setNsPrefixes(dataModel);
-            LogHelper.info(state.getLog(), "Inferences:", 2);
-            List<String> inferenceStats =
-                    formatInferenceLogStats(inferredModel, i, System.currentTimeMillis() - start);
-            LogHelper.info(state.getLog(), inferenceStats, 3);
-            LogHelper.info(state.getLog(), "Output:", 2);
+            state.log().info("Inferences:", 2);
+            List<String> inferenceStats = formatInferenceLogStats(inferredModel, i);
+            state.log().info(inferenceStats, 3);
+            state.log().info("Output:", 2);
             if (inferred != null) {
                 boolean writeReportToDefaultGraph = true;
                 if (inferred.getGraph() != null) {
-                    dataset.addNamedModel(inferred.getGraph(), inferredModel);
-                    LogHelper.info(
-                            state.getLog(),
-                            String.format("%5s: %s", "graph", inferred.getGraph()),
-                            3);
-                    PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, inferred.getGraph());
+                    String graphName =
+                            VariableResolver.resolveVariables(
+                                    inferred.getGraph(), dataset, state.getMetadataGraph());
+                    dataset.addNamedModel(graphName, inferredModel);
+                    state.log().info(String.format("%5s: %s", "graph", graphName), 3);
+                    PipelineHelper.bindGraphToNoFileIfUnbound(dataset, state, graphName);
                     writeReportToDefaultGraph = false;
                 }
                 if (inferred != null && inferred.getFile() != null) {
-                    RelativePath path = state.files().make(inferred.getFile());
+                    RelativePath path =
+                            state.files()
+                                    .make(
+                                            VariableResolver.resolveVariables(
+                                                    inferred.getFile(),
+                                                    dataset,
+                                                    state.getMetadataGraph()));
                     state.files().writeRdf(path, inferredModel);
-                    LogHelper.info(
-                            state.getLog(),
-                            String.format("%5s: %s", "file", path.getRelativePath()),
-                            3);
+                    state.log().info(String.format("%5s: %s", "file", path.getRelativePath()), 3);
                     writeReportToDefaultGraph = false;
                 }
                 if (writeReportToDefaultGraph) {
-                    LogHelper.info(
-                            state.getLog(),
-                            String.format("%5s: %s", "graph", PipelineHelper.formatDefaultGraph()),
-                            3);
+                    state.log()
+                            .info(
+                                    String.format(
+                                            "%5s: %s",
+                                            "graph", PipelineHelper.formatDefaultGraph()),
+                                    3);
                     dataset.getDefaultModel().add(inferredModel);
                 }
             }
             if (!iterationTriplesFiles.isEmpty()) {
-                LogHelper.info(
-                        state.getLog(),
-                        iterationTriplesFiles.stream()
-                                .map(f -> "%s: %s".formatted("per-iteration file", f))
-                                .toList(),
-                        3);
+                state.log()
+                        .info(
+                                iterationTriplesFiles.stream()
+                                        .map(f -> "%s: %s".formatted("per-iteration file", f))
+                                        .toList(),
+                                3);
             }
             state.getPrecedingSteps().add(this);
         } catch (RuntimeException e) {
@@ -260,10 +269,9 @@ public class ShaclInferStep implements Step {
         }
     }
 
-    private List<String> formatInferenceLogStats(Model inferredModel, int iterations, long millis) {
+    private List<String> formatInferenceLogStats(Model inferredModel, int iterations) {
         List<String> ret = new ArrayList<>();
         ret.add("new triples: " + inferredModel.size());
-        ret.add("       time: " + TimeHelper.makeDurationString(millis));
         if (iterations > 1) {
             ret.add(" iterations: " + iterations);
         }
@@ -310,8 +318,8 @@ public class ShaclInferStep implements Step {
             }
             entries.addAll(PipelineHelper.formatGraphs(allGraphs));
         }
-        state.getLog().info("    " + fileKind);
-        LogHelper.info(state.getLog(), entries, 2);
+        state.log().info("    " + fileKind);
+        state.log().info(entries, 2);
         return dataModel;
     }
 

@@ -31,6 +31,7 @@ public class ShaclFunctionsStep implements Step {
     @Override
     public void execute(Dataset dataset, PipelineState state)
             throws RuntimeException, MojoExecutionException {
+        state.log().info("loading SHACL-AF functions for use in SPARQL and SHACL", 1);
         List<RelativePath> inputPaths = inputsComponent.getAllInputPaths(dataset, state);
         if (!inputPaths.isEmpty()) {
             for (RelativePath inputPath : inputPaths) {
@@ -38,9 +39,11 @@ public class ShaclFunctionsStep implements Step {
                         dataset, state, inputPath, state.getShaclFunctionsGraph(), false);
             }
         }
+        state.log().info(inputPaths.stream().map(p -> " file: " + p.getRelativePath()).toList(), 1);
         List<String> inputGraphs = inputsComponent.getAllInputGraphs(dataset, state);
         PipelineHelper.addGraphsToGraph(
                 dataset, state.getShaclFunctionsGraph(), inputGraphs, state);
+        state.log().info(inputGraphs.stream().map(p -> "graph: " + p).toList(), 1);
         SparqlHelper.registerShaclFunctions(
                 dataset, state.getShaclFunctionsGraph(), state.getLog());
     }

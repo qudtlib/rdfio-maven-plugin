@@ -51,7 +51,7 @@ public record DatasetDifference(Set<GraphDifference> differences) {
 
     public List<String> formatForChange() {
         if (!isDifferent()) {
-            return List.of("Dataset has no changes");
+            return List.of("none");
         }
         return differences.stream()
                 .filter(not(GraphDifference::graphsAreEqual))

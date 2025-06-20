@@ -29,7 +29,7 @@ public class FileAccess {
             throws FileAccessException {
         File file = validatePath(path, state);
         FileHelper.ensureFilesExist(List.of(file), "input");
-        state.getLog().debug("Reading RDF from: " + file.getAbsolutePath());
+        state.log().debug("Reading RDF from: " + file.getAbsolutePath());
         try (FileInputStream fis = new FileInputStream(file)) {
             RDFDataMgr.read(model, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TTL));
         } catch (IOException e) {
@@ -41,7 +41,7 @@ public class FileAccess {
             throws FileAccessException {
         File file = validatePath(path, state);
         FileHelper.ensureFilesExist(List.of(file), "input");
-        state.getLog().debug("Reading RDF from: " + file.getAbsolutePath());
+        state.log().debug("Reading RDF from: " + file.getAbsolutePath());
         try (FileInputStream fis = new FileInputStream(file)) {
             RDFDataMgr.read(
                     dataset, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TRIG));
@@ -81,7 +81,7 @@ public class FileAccess {
             dataset.getPrefixMapping().setNsPrefixes(graph);
         }
         dataset.getPrefixMapping().setNsPrefixes(dataset.getDefaultModel());
-        state.getLog().debug("Writing RDF dataset to: " + file.getAbsolutePath());
+        state.log().debug("Writing RDF dataset to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, dataset, lang);
         } catch (IOException e) {
@@ -97,7 +97,7 @@ public class FileAccess {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
-        state.getLog().debug("Writing RDF model to: " + file.getAbsolutePath());
+        state.log().debug("Writing RDF model to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, model, lang);
         } catch (IOException e) {
@@ -109,7 +109,7 @@ public class FileAccess {
             throws FileAccessException {
         File file = validatePath(path, state);
         FileHelper.ensureFilesExist(List.of(file), "input");
-        state.getLog().debug("Reading text from: " + file.getAbsolutePath());
+        state.log().debug("Reading text from: " + file.getAbsolutePath());
         try {
             return Files.readString(file.toPath(), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -124,7 +124,7 @@ public class FileAccess {
         if (parentDir != null && !parentDir.exists()) {
             parentDir.mkdirs();
         }
-        state.getLog().debug("Writing text to: " + file.getAbsolutePath());
+        state.log().debug("Writing text to: " + file.getAbsolutePath());
         try {
             Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
@@ -134,7 +134,7 @@ public class FileAccess {
 
     public static void delete(RelativePath path, PipelineState state) throws FileAccessException {
         File file = validatePath(path, state);
-        state.getLog().debug("Deleting file: " + file.getAbsolutePath());
+        state.log().debug("Deleting file: " + file.getAbsolutePath());
         try {
             Files.deleteIfExists(file.toPath());
         } catch (IOException e) {
@@ -146,10 +146,10 @@ public class FileAccess {
         try {
             File file = validatePath(path, state);
             boolean exists = file.exists();
-            state.getLog().debug("Checking existence of " + file.getAbsolutePath() + ": " + exists);
+            state.log().debug("Checking existence of " + file.getAbsolutePath() + ": " + exists);
             return exists;
         } catch (FileAccessException e) {
-            state.getLog().debug("Path validation failed for existence check: " + path, e);
+            state.log().debug("Path validation failed for existence check: " + path, e);
             return false;
         }
     }

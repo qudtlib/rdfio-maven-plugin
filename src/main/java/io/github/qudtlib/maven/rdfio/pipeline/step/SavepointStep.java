@@ -57,6 +57,7 @@ public class SavepointStep implements Step {
             state.getPrecedingSteps().add(this);
             return;
         }
+        state.log().info("id: " + id, 1);
         SavepointCache cache = state.getSavepointCache();
         String currentHash = calculateHash(state.getPreviousStepHash(), state);
         if (cache.isValid(id, currentHash, state)) {

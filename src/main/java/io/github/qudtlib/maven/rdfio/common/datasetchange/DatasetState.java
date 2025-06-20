@@ -8,7 +8,7 @@ import java.util.Set;
 import org.apache.jena.query.Dataset;
 
 public class DatasetState {
-    private static final String DEFAULT_GRAPH_NAME = "[DEFAULT GRAPH]";
+    public static final String DEFAULT_GRAPH_NAME = "[DEFAULT GRAPH]";
     private final Set<String> graphNames = new HashSet<>();
     private final Map<String, Long> graphSizes = new HashMap<>();
     private final Map<String, Integer> graphHashes = new HashMap<>();

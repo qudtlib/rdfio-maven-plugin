@@ -99,7 +99,35 @@ public class SparqlHelper {
             parsedUpdate = UpdateFactory.create(sparql);
         } catch (Exception e) {
             throw new MojoExecutionException(
-                    "Failed to execute SPARQL update:\n" + withLineNumbers(sparql) + "\n", e);
+                    "Failed to execute SPARQL update:\n"
+                            + withLineNumbers(sparql)
+                            + "\n"
+                            + e.getMessage());
+        }
+        UpdateAction.execute(parsedUpdate, dataset, bindings);
+    }
+
+    /**
+     * Executes a SPARQL update query on the dataset, pre-binding variables from the metadata graph.
+     *
+     * @param sparql The SPARQL update query to execute.
+     * @param dataset The Jena Dataset to update.
+     * @param metadataGraph The URI of the metadata graph (e.g., http://qudtlib.org/rdfio/metadata).
+     * @throws MojoExecutionException If the query is invalid or execution fails.
+     */
+    public static void executeSparqlAskWithVariables(
+            String sparql, Dataset dataset, String metadataGraph) throws MojoExecutionException {
+        sparql = addPrefixes(sparql, dataset);
+        QuerySolutionMap bindings = extractVariableBindings(dataset, metadataGraph);
+        UpdateRequest parsedUpdate;
+        try {
+            parsedUpdate = UpdateFactory.create(sparql);
+        } catch (Exception e) {
+            throw new MojoExecutionException(
+                    "Failed to execute SPARQL update:\n"
+                            + withLineNumbers(sparql)
+                            + "\n"
+                            + e.getMessage());
         }
         UpdateAction.execute(parsedUpdate, dataset, bindings);
     }
@@ -164,10 +192,17 @@ public class SparqlHelper {
 
     /** Interface for processing SPARQL query results. */
     public interface QueryResultProcessor {
-        default void processAskResult(boolean result) {}
+        default void processAskResult(boolean result) {
+            throw new UnsupportedOperationException("Unexpected SPARQL ASK query");
+        }
 
-        default void processSelectResult(ResultSet result) {}
+        default void processSelectResult(ResultSet result) {
+            throw new UnsupportedOperationException("Unexpected SPARQL SELECT query");
+        }
 
-        default void processConstructOrDescribeResult(Model result) {}
+        default void processConstructOrDescribeResult(Model result) {
+            throw new UnsupportedOperationException(
+                    "Unexpected SPARQL CONSTRUCT or DESCRIBE query");
+        }
     }
 }

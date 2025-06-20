@@ -56,16 +56,17 @@ public class ForeachStep implements Step {
             throw new MojoExecutionException("Var, values, and body are required in foreach step");
         }
         List<String> graphNames = PipelineHelper.getGraphs(dataset, values.getGraphs());
-
-        String previousHash = state.getPreviousStepHash();
-        for (String graphName : graphNames) {
-            Resource graphNameRes = ResourceFactory.createResource(graphName);
-            PipelineHelper.setPipelineVariable(dataset, state, var, graphNameRes);
-            String subPreviousHash = previousHash;
-            for (Step step : body) {
-                subPreviousHash = step.calculateHash(subPreviousHash, state);
-                step.execute(dataset, state);
+        try {
+            state.incIndentLevel();
+            for (String graphName : graphNames) {
+                Resource graphNameRes = ResourceFactory.createResource(graphName);
+                PipelineHelper.setPipelineVariable(dataset, state, var, graphNameRes);
+                for (Step step : body) {
+                    step.executeAndWrapException(dataset, state);
+                }
             }
+        } finally {
+            state.decIndentLevel();
         }
         state.getPrecedingSteps().add(this);
     }
@@ -130,15 +131,17 @@ public class ForeachStep implements Step {
                         case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyStepConfig);
                         case "add" -> AddStep.parse(bodyStepConfig);
                         case "shaclInfer" -> ShaclInferStep.parse(bodyStepConfig);
+                        case "shaclValidate" -> ShaclValidateStep.parse(bodyStepConfig);
                         case "write" -> WriteStep.parse(bodyStepConfig);
                         case "foreach" -> ForeachStep.parse(bodyStepConfig);
+                        case "until" -> UntilStep.parse(bodyStepConfig);
                         default ->
                                 throw new ConfigurationParseException(
                                         config,
                                         "Invalid step type in foreach <body>: "
                                                 + bodyStepType
                                                 + ".\n"
-                                                + "Usage: Use one of: <add>, <sparqlUpdate>, <shaclInfer>, <write>, <foreach>.\n"
+                                                + "Usage: Use one of: <add>, <sparqlUpdate>, <shaclInfer>, <shaclValidate>, <write>, <foreach>, <until>.\n"
                                                 + "Example: <body><sparqlUpdate><sparql>...</sparql></sparqlUpdate></body>");
                     };
             step.addBodyStep(bodyStep);

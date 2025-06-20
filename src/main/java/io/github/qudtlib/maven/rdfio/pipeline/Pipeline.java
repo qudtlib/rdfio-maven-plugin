@@ -144,6 +144,7 @@ public class Pipeline {
                             case "shaclValidate" -> ShaclValidateStep.parse(stepDom);
                             case "write" -> WriteStep.parse(stepDom);
                             case "foreach" -> ForeachStep.parse(stepDom);
+                            case "until" -> UntilStep.parse(stepDom);
                             case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
                             default ->
                                     throw new ConfigurationParseException(

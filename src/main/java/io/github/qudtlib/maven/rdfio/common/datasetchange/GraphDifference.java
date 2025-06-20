@@ -12,24 +12,30 @@ public record GraphDifference(
         if (existsInLeft) {
             if (existsInRight) {
                 if (graphsAreEqual) {
-                    return "Graph '%s': no change".formatted(name);
+                    return "unchanged graph: %s".formatted(name);
                 } else {
                     if (sizeLeft == sizeRight) {
-                        return "Graph '%s: changed, same size".formatted(name);
+                        return "  changed graph: %s  (same size)".formatted(name);
                     } else {
                         long diff = sizeRight - sizeLeft;
-                        return "Graph '%s': changed, %s%d triples"
-                                .formatted(name, diff > 0 ? "+" : "", diff);
+                        return "  changed graph: %s  %s%d triple%s"
+                                .formatted(
+                                        name,
+                                        diff > 0 ? "+" : "",
+                                        diff,
+                                        Math.abs(diff) != 1 ? "s" : "");
                     }
                 }
             } else {
-                return "Graph '%s': deleted (had %d triples)".formatted(name, sizeLeft);
+                return "  deleted graph: %s  had %d triple%s"
+                        .formatted(name, sizeLeft, Math.abs(sizeLeft) != 1 ? "s" : "");
             }
         } else {
             if (existsInRight) {
-                return "Graph '%s': added (%d triples)".formatted(name, sizeRight);
+                return "      new graph: %s  %d triple%s"
+                        .formatted(name, sizeRight, Math.abs(sizeRight) != 1 ? "s" : "");
             } else {
-                return "Mysterious graph '%s' exists neither in left nor in right - that's a bug"
+                return "Mysterious graph %s exists neither in left nor in right - that's a bug"
                         .formatted(name);
             }
         }

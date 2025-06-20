@@ -1,5 +1,6 @@
 package io.github.qudtlib.maven.rdfio.pipeline;
 
+import io.github.qudtlib.maven.rdfio.common.LogHelper;
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.*;
 import io.github.qudtlib.maven.rdfio.common.log.StdoutLog;
@@ -8,15 +9,13 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.support.GraphSelection;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.SavepointCache;
 import io.github.qudtlib.maven.rdfio.pipeline.support.VariableResolver;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.maven.plugin.logging.Log;
 
 public class PipelineState {
+    private final Logger logger;
     private SavepointCache savepointCache;
     private boolean allowLoadingFromSavepoint = true;
     private String metadataGraph;
@@ -31,6 +30,7 @@ public class PipelineState {
     private PipelineState.Variables variables;
     private String defaultShaclLogSeverity = null;
     private String defaultShaclFailSeverity = null;
+    private int indentLevel = 0;
 
     public PipelineState(
             String pipelineId,
@@ -55,6 +55,7 @@ public class PipelineState {
                         .orElse(RDFIO.shaclFunctionsGraph.toString());
         this.files = new Files();
         this.variables = new PipelineState.Variables();
+        this.logger = new PipelineState.Logger();
     }
 
     public SavepointCache getSavepointCache() {
@@ -83,10 +84,6 @@ public class PipelineState {
 
     public RelativePath getPipelineWorkDir() {
         return pipelineWorkDir;
-    }
-
-    public Log getLog() {
-        return log;
     }
 
     public List<Step> getPrecedingSteps() {
@@ -138,6 +135,10 @@ public class PipelineState {
 
     public Files files() {
         return this.files;
+    }
+
+    public Log getLog() {
+        return log;
     }
 
     public class Files {
@@ -218,5 +219,52 @@ public class PipelineState {
         }
     }
 
+    public Logger log() {
+        return this.logger;
+    }
+
+    public class Logger {
+
+        public void debug(String line) {
+            LogHelper.debug(log, List.of(line));
+        }
+
+        public void debug(Collection<String> lines) {
+            LogHelper.debug(log, lines);
+        }
+
+        public void debug(String s, Throwable e) {
+            log.debug(s, e);
+        }
+
+        public void info(String line) {
+            LogHelper.info(log, line, indentLevel);
+        }
+
+        public void info(Collection<String> lines) {
+            LogHelper.info(log, lines, indentLevel);
+        }
+
+        public void info(Collection<String> lines, int indentLevels) {
+            LogHelper.info(log, lines, indentLevels + indentLevel);
+        }
+
+        public void info(String content, int indentLevels) {
+            LogHelper.info(log, content, indentLevels + indentLevel);
+        }
+    }
+
     private VariableResolver variableResolver;
+
+    public void incIndentLevel() {
+        changeIndentLevel(1);
+    }
+
+    public void decIndentLevel() {
+        changeIndentLevel(-1);
+    }
+
+    private void changeIndentLevel(int by) {
+        this.indentLevel += by;
+    }
 }

@@ -1,5 +1,7 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import static io.github.qudtlib.maven.rdfio.common.datasetchange.DatasetState.DEFAULT_GRAPH_NAME;
+
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.*;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
@@ -59,14 +61,18 @@ public class WriteStep implements Step {
             RelativePath outputPath =
                     state.files().make(state.variables().resolve(this.toFile, dataset));
             Lang outputLang = RDFLanguages.resourceNameToLang(outputPath.getName(), Lang.TTL);
+            List<String> graphNames = null;
             if (RDFLanguages.isQuads(outputLang)) {
                 state.files().createParentFolder(outputPath);
                 Dataset dsToWrite = DatasetFactory.create();
                 if (graphs.isEmpty()) {
                     dsToWrite.getDefaultModel().add(dataset.getDefaultModel());
+                    graphNames = List.of(DEFAULT_GRAPH_NAME);
                 } else {
+                    graphNames = new ArrayList<>();
                     for (String graph : state.variables().resolve(graphs, dataset)) {
                         dsToWrite.addNamedModel(graph, dataset.getNamedModel(graph));
+                        graphNames.add(graph);
                     }
                 }
                 state.files().writeRdf(outputPath, dsToWrite);
@@ -75,13 +81,20 @@ public class WriteStep implements Step {
                 Model modelToWrite = ModelFactory.createDefaultModel();
                 if (graphs.isEmpty()) {
                     modelToWrite.add(dataset.getDefaultModel());
+                    graphNames = List.of(DEFAULT_GRAPH_NAME);
                 } else {
+                    graphNames = new ArrayList<>();
+                    List<String> graphDescriptions = new ArrayList<>();
                     for (String graph : state.variables().resolve(graphs, dataset)) {
                         modelToWrite.add(dataset.getNamedModel(graph));
+                        graphNames.add(graph);
                     }
                 }
                 state.files().writeRdf(outputPath, modelToWrite);
             }
+            state.log().info(graphNames.stream().map(name -> "graph: " + name).toList(), 1);
+            state.log().info("Output:", 1);
+            state.log().info("file: " + outputPath.getRelativePath(), 2);
         }
 
         state.getPrecedingSteps().add(this);
@@ -104,6 +117,12 @@ public class WriteStep implements Step {
             } else {
                 throw new MojoExecutionException("Multiple file mappings found for graph " + graph);
             }
+            state.log()
+                    .info(
+                            List.of(
+                                    "graph %s".formatted(graph),
+                                    "    -> %s".formatted(outputFileStr)),
+                            1);
             RelativePath outputPath = state.files().make(outputFileStr);
             state.files().createParentFolder(outputPath);
             state.files().writeRdf(outputPath, dataset.getNamedModel(graph));

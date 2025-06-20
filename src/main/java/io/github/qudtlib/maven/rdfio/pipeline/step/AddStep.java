@@ -1,5 +1,7 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import static io.github.qudtlib.maven.rdfio.common.datasetchange.DatasetState.DEFAULT_GRAPH_NAME;
+
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.*;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.InputsComponent;
@@ -9,9 +11,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExece
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.jena.query.Dataset;
@@ -107,6 +107,7 @@ public class AddStep implements Step {
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
+        Map<String, Set<String>> targetGraphToInputsMap = new HashMap<>();
         String toGraphResolved = state.variables().resolve(toGraph, dataset);
         String toGraphsPatternResolved = state.variables().resolve(toGraphsPattern, dataset);
         if (inputsComponent.hasNoInputs()) {
@@ -119,7 +120,8 @@ public class AddStep implements Step {
                         "<add> has no inputs - it needs at least a <toGraph> element, so we can copy the triples from the default graph there.\n%s"
                                 .formatted(usage()));
             }
-            state.getLog().debug("Loading default graph into graph %s".formatted(toGraphResolved));
+            targetGraphToInputsMap.put(toGraphResolved, Set.of(graphLabel(DEFAULT_GRAPH_NAME)));
+            state.log().debug("Loading default graph into graph %s".formatted(toGraphResolved));
             // take default model and put it in the toGraph
             PipelineHelper.addDefaultModelToGraph(dataset, state, toGraphResolved);
         } else {
@@ -150,6 +152,10 @@ public class AddStep implements Step {
                     } else {
                         targetGraph = null; // will write to default graph
                     }
+                    addInputDescription(
+                            targetGraphToInputsMap,
+                            targetGraph,
+                            "file: " + inputPath.getRelativePath());
                     PipelineHelper.readFileToGraph(
                             dataset, state, inputPath, targetGraph, isBijectiveFileToGraphRel);
                     index++;
@@ -159,6 +165,10 @@ public class AddStep implements Step {
             if (!inputGraphs.isEmpty()) {
                 if (toGraphResolved != null) {
                     PipelineHelper.addGraphsToGraph(dataset, toGraphResolved, inputGraphs, state);
+                    addInputDescriptions(
+                            targetGraphToInputsMap,
+                            toGraphResolved,
+                            inputGraphs.stream().map(g -> "graph: " + g).toList());
                 } else if (toGraphsPatternResolved != null) {
                     for (String sourceGraph : inputGraphs) {
                         String targetGraph =
@@ -168,14 +178,53 @@ public class AddStep implements Step {
                                         getName(sourceGraph),
                                         index);
                         PipelineHelper.addGraphToGraph(dataset, sourceGraph, targetGraph, state);
+                        addInputDescription(
+                                targetGraphToInputsMap, targetGraph, "graph: " + sourceGraph);
                         index++;
                     }
                 } else {
                     PipelineHelper.addGraphsToDefaultGraph(dataset, inputGraphs, state);
+                    addInputDescriptions(
+                            targetGraphToInputsMap,
+                            DEFAULT_GRAPH_NAME,
+                            inputGraphs.stream().map(g -> "graph: " + g).toList());
                 }
             }
         }
+        for (String outputGraph : targetGraphToInputsMap.keySet().stream().sorted().toList()) {
+            List<String> sortedInputs =
+                    targetGraphToInputsMap.get(outputGraph).stream().sorted().toList();
+            state.log().info(sortedInputs, 1);
+            state.log().info("toGraph: " + outputGraph, 2);
+        }
         state.getPrecedingSteps().add(this);
+    }
+
+    private static void addInputDescriptions(
+            Map<String, Set<String>> targetGraphToInputsMap,
+            String targetGraph,
+            List<String> inputDescription) {
+        inputDescription.forEach(
+                descr -> addInputDescription(targetGraphToInputsMap, targetGraph, descr));
+    }
+
+    private static void addInputDescription(
+            Map<String, Set<String>> targetGraphToInputsMap,
+            String targetGraph,
+            String inputDescription) {
+        targetGraphToInputsMap.compute(
+                targetGraph,
+                (key, names) -> {
+                    if (names == null) {
+                        names = new HashSet();
+                    }
+                    names.add(inputDescription);
+                    return names;
+                });
+    }
+
+    private String graphLabel(String graphName) {
+        return "graph: " + graphName;
     }
 
     private static String getName(String sourceGraph) {
