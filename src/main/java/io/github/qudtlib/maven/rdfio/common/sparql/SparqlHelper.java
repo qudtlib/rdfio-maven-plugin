@@ -56,7 +56,8 @@ public class SparqlHelper {
 
     /**
      * Extracts variable bindings from the metadata graph into a QuerySolutionMap. Variables are
-     * extracted from triples like <http://qudtlib.org/rdfio/variables/varName> rdfio:value "value".
+     * extracted from triples like &gt;http://qudtlib.org/rdfio/variables/varName&lt; rdfio:value
+     * "value".
      *
      * @param dataset The Jena Dataset containing the metadata graph.
      * @param metadataGraph The URI of the metadata graph (e.g., http://qudtlib.org/rdfio/metadata).
