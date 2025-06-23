@@ -12,15 +12,15 @@ public class GraphsHelper {
 
     /**
      * Returns a list of models from the dataset as identifified by the specified list of graph
-     * names. If graphs is null or empty, or contains only the value "DEFAULT" ({@link
-     * Graphs.DEFAULT})), the default graph is returned.
+     * names. If graphs is null or empty, or contains only the value "DEFAULT" (Graphs.DEFAULT), the
+     * default graph is returned.
      *
-     * <p>If graphs contains only the String "*" (no quotes, {@link Graphs.EACH}), all graphs as
-     * well as the default graph are returned.
+     * <p>If graphs contains only the String "*" (no quotes, Graphs.EACH), all graphs as well as the
+     * default graph are returned.
      *
-     * <p>if graphs contains the value "DATASET" (no quotes, {@link Graphs.DATASET}), an exception
-     * is thrown because this value indicates that the dataset is to be processed as a dataset not
-     * each graph separately
+     * <p>if graphs contains the value "DATASET" (no quotes, Graphs.DATASET), an exception is thrown
+     * because this value indicates that the dataset is to be processed as a dataset not each graph
+     * separately
      *
      * @param dataset
      * @param graphs
