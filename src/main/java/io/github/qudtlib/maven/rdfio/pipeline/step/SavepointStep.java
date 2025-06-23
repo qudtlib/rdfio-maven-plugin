@@ -1,5 +1,6 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
+import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.SavepointCache;
@@ -62,10 +63,16 @@ public class SavepointStep implements Step {
         String currentHash = calculateHash(state.getPreviousStepHash(), state);
         if (cache.isValid(id, currentHash, state)) {
             if (state.isAllowLoadingFromSavepoint()) {
+                state.log().info("loading savepoint data", 1);
                 cache.load(id, dataset, state);
+                if (dataset.containsNamedModel(state.getShaclFunctionsGraph())) {
+                    SparqlHelper.registerShaclFunctions(
+                            dataset, state.getShaclFunctionsGraph(), state.getLog());
+                }
                 state.setAllowLoadingFromSavepoint(false);
             }
         } else {
+            state.log().info("saving savepoint data", 1);
             cache.save(id, dataset, currentHash, state);
             state.getPrecedingSteps().add(this);
         }

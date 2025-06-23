@@ -129,6 +129,7 @@ public class ForeachStep implements Step {
             Step bodyStep =
                     switch (bodyStepType) {
                         case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyStepConfig);
+                        case "sparqlQuery" -> SparqlQueryStep.parse(bodyStepConfig);
                         case "add" -> AddStep.parse(bodyStepConfig);
                         case "shaclInfer" -> ShaclInferStep.parse(bodyStepConfig);
                         case "shaclValidate" -> ShaclValidateStep.parse(bodyStepConfig);
