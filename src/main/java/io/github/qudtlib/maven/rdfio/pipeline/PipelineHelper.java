@@ -286,6 +286,21 @@ public class PipelineHelper {
         }
     }
 
+    public static void addDataToGraph(
+            Dataset dataset, PipelineState state, Model data, String targetGraph) {
+        Model model;
+        if (targetGraph == null) {
+            model = dataset.getDefaultModel();
+        } else {
+            model = dataset.getNamedModel(targetGraph);
+        }
+        model.add(data);
+        state.log().debug("Loading in-memory data into graph: %s".formatted(targetGraph));
+        if (targetGraph != null) {
+            bindGraphToNoFileIfUnbound(dataset, state, targetGraph);
+        }
+    }
+
     public static void setPipelineVariable(
             Dataset dataset, PipelineState state, String variableName, RDFNode value) {
         state.log()

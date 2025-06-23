@@ -139,6 +139,7 @@ public class Pipeline {
                         switch (stepType) {
                             case "add" -> AddStep.parse(stepDom);
                             case "sparqlUpdate" -> SparqlUpdateStep.parse(stepDom);
+                            case "sparqlQuery" -> SparqlQueryStep.parse(stepDom);
                             case "savepoint" -> SavepointStep.parse(stepDom);
                             case "shaclInfer" -> ShaclInferStep.parse(stepDom);
                             case "shaclValidate" -> ShaclValidateStep.parse(stepDom);
