@@ -81,12 +81,7 @@ public class ForeachStep implements Step {
                 digest.update(var.getBytes(StandardCharsets.UTF_8));
             }
             if (values != null && values.getGraphs() != null) {
-                values.getGraphs()
-                        .getInclude()
-                        .forEach(i -> digest.update(i.getBytes(StandardCharsets.UTF_8)));
-                values.getGraphs()
-                        .getExclude()
-                        .forEach(e -> digest.update(e.getBytes(StandardCharsets.UTF_8)));
+                values.getGraphs().updateHash(digest, state);
             }
             String subPreviousHash = "";
             for (Step subStep : body) {
@@ -128,14 +123,16 @@ public class ForeachStep implements Step {
             String bodyStepType = bodyStepConfig.getName();
             Step bodyStep =
                     switch (bodyStepType) {
-                        case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyStepConfig);
-                        case "sparqlQuery" -> SparqlQueryStep.parse(bodyStepConfig);
                         case "add" -> AddStep.parse(bodyStepConfig);
+                        case "assert" -> AssertStep.parse(bodyStepConfig);
+                        case "clear" -> ClearStep.parse(bodyStepConfig);
+                        case "foreach" -> ForeachStep.parse(bodyStepConfig);
                         case "shaclInfer" -> ShaclInferStep.parse(bodyStepConfig);
                         case "shaclValidate" -> ShaclValidateStep.parse(bodyStepConfig);
-                        case "write" -> WriteStep.parse(bodyStepConfig);
-                        case "foreach" -> ForeachStep.parse(bodyStepConfig);
+                        case "sparqlQuery" -> SparqlQueryStep.parse(bodyStepConfig);
+                        case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyStepConfig);
                         case "until" -> UntilStep.parse(bodyStepConfig);
+                        case "write" -> WriteStep.parse(bodyStepConfig);
                         default ->
                                 throw new ConfigurationParseException(
                                         config,

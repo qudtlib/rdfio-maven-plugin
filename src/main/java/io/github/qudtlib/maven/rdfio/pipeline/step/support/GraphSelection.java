@@ -1,7 +1,10 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step.support;
 
 import io.github.qudtlib.maven.rdfio.common.file.FileSelection;
+import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -81,5 +84,10 @@ public class GraphSelection {
                                 <include>inferred:*</include>
                                 <exclude>inferred:thatOneGraph</exclude>
                             </graphs>""";
+    }
+
+    public void updateHash(MessageDigest digest, PipelineState state) {
+        this.include.forEach(s -> digest.update(s.getBytes(StandardCharsets.UTF_8)));
+        this.exclude.forEach(s -> digest.update(s.getBytes(StandardCharsets.UTF_8)));
     }
 }
