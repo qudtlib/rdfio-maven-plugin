@@ -138,15 +138,17 @@ public class Pipeline {
                 Step step =
                         switch (stepType) {
                             case "add" -> AddStep.parse(stepDom);
-                            case "sparqlUpdate" -> SparqlUpdateStep.parse(stepDom);
-                            case "sparqlQuery" -> SparqlQueryStep.parse(stepDom);
+                            case "assert" -> AssertStep.parse(stepDom);
+                            case "clear" -> ClearStep.parse(stepDom);
+                            case "foreach" -> ForeachStep.parse(stepDom);
                             case "savepoint" -> SavepointStep.parse(stepDom);
+                            case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
                             case "shaclInfer" -> ShaclInferStep.parse(stepDom);
                             case "shaclValidate" -> ShaclValidateStep.parse(stepDom);
-                            case "write" -> WriteStep.parse(stepDom);
-                            case "foreach" -> ForeachStep.parse(stepDom);
+                            case "sparqlQuery" -> SparqlQueryStep.parse(stepDom);
+                            case "sparqlUpdate" -> SparqlUpdateStep.parse(stepDom);
                             case "until" -> UntilStep.parse(stepDom);
-                            case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
+                            case "write" -> WriteStep.parse(stepDom);
                             default ->
                                     throw new ConfigurationParseException(
                                             config,

@@ -4,6 +4,7 @@ import static io.github.qudtlib.maven.rdfio.common.datasetchange.DatasetState.DE
 
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.pipeline.*;
+import io.github.qudtlib.maven.rdfio.pipeline.step.support.GraphSelection;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.nio.charset.StandardCharsets;
@@ -25,12 +26,22 @@ public class WriteStep implements Step {
 
     private String toFile;
 
+    private GraphSelection graphSelection;
+
     public List<String> getGraphs() {
         return graphs;
     }
 
     public void addGraph(String graph) {
         this.graphs.add(graph);
+    }
+
+    public GraphSelection getGraphSelection() {
+        return graphSelection;
+    }
+
+    public void setGraphSelection(GraphSelection graphSelection) {
+        this.graphSelection = graphSelection;
     }
 
     public String getToFile() {
@@ -55,8 +66,18 @@ public class WriteStep implements Step {
         // file
         // 3. toFile is a quads format (eg.  xyz.trig) - each graph is written to the file with the
         // graph uri as the fourth element
+        List<String> allGraphs = new ArrayList<>();
+        if (this.graphs != null) {
+            allGraphs.addAll(this.graphs);
+        }
+        if (this.graphSelection != null) {
+            List<String> selectedGraphs = PipelineHelper.getGraphs(dataset, graphSelection);
+            if (!selectedGraphs.isEmpty()) {
+                allGraphs.addAll(selectedGraphs);
+            }
+        }
         if (this.toFile == null) {
-            writeOneFilePerGraph(dataset, state);
+            writeOneFilePerGraph(dataset, state, allGraphs);
         } else {
             RelativePath outputPath =
                     state.files().make(state.variables().resolve(this.toFile, dataset));
@@ -65,12 +86,12 @@ public class WriteStep implements Step {
             if (RDFLanguages.isQuads(outputLang)) {
                 state.files().createParentFolder(outputPath);
                 Dataset dsToWrite = DatasetFactory.create();
-                if (graphs.isEmpty()) {
+                if (allGraphs.isEmpty()) {
                     dsToWrite.getDefaultModel().add(dataset.getDefaultModel());
                     graphNames = List.of(DEFAULT_GRAPH_NAME);
                 } else {
                     graphNames = new ArrayList<>();
-                    for (String graph : state.variables().resolve(graphs, dataset)) {
+                    for (String graph : state.variables().resolve(allGraphs, dataset)) {
                         dsToWrite.addNamedModel(graph, dataset.getNamedModel(graph));
                         graphNames.add(graph);
                     }
@@ -79,13 +100,12 @@ public class WriteStep implements Step {
             } else {
                 state.files().createParentFolder(outputPath);
                 Model modelToWrite = ModelFactory.createDefaultModel();
-                if (graphs.isEmpty()) {
+                if (allGraphs.isEmpty()) {
                     modelToWrite.add(dataset.getDefaultModel());
                     graphNames = List.of(DEFAULT_GRAPH_NAME);
                 } else {
                     graphNames = new ArrayList<>();
-                    List<String> graphDescriptions = new ArrayList<>();
-                    for (String graph : state.variables().resolve(graphs, dataset)) {
+                    for (String graph : state.variables().resolve(allGraphs, dataset)) {
                         modelToWrite.add(dataset.getNamedModel(graph));
                         graphNames.add(graph);
                     }
@@ -100,15 +120,16 @@ public class WriteStep implements Step {
         state.getPrecedingSteps().add(this);
     }
 
-    private void writeOneFilePerGraph(Dataset dataset, PipelineState state)
+    private void writeOneFilePerGraph(
+            Dataset dataset, PipelineState state, List<String> graphsToWrite)
             throws MojoExecutionException {
-        if (this.graphs.isEmpty()) {
+        if (graphsToWrite.isEmpty()) {
             throw new MojoExecutionException(
                     "Neither <graph> nor <toFile> is specified - that is not enough\n%s"
                             .formatted(usage()));
         }
         String outputFileStr;
-        for (String graph : state.variables().resolve(this.graphs, dataset)) {
+        for (String graph : state.variables().resolve(graphsToWrite, dataset)) {
             List<String> files = PipelineHelper.getFilePathBoundToGraph(dataset, state, graph);
             if (files.size() == 1) {
                 outputFileStr = files.get(0);
@@ -135,6 +156,9 @@ public class WriteStep implements Step {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));
             digest.update("write".getBytes(StandardCharsets.UTF_8));
+            if (graphSelection != null) {
+                graphSelection.updateHash(digest, state);
+            }
             graphs.forEach(graph -> digest.update(graph.getBytes(StandardCharsets.UTF_8)));
 
             if (toFile != null) {
@@ -159,13 +183,16 @@ public class WriteStep implements Step {
 
         WriteStep step = new WriteStep();
         ParsingHelper.optionalStringChildren(config, "graph", step::addGraph, WriteStep::usage);
+        ParsingHelper.optionalDomChild(
+                config, "graphs", GraphSelection::parse, step::setGraphSelection, WriteStep::usage);
         ParsingHelper.optionalStringChild(config, "toFile", step::setToFile, WriteStep::usage);
-        if (step.graphs.isEmpty()) {
+        if (step.graphs.isEmpty()
+                && (step.graphSelection == null || step.graphSelection.getInclude().isEmpty())) {
             if (step.toFile == null) {
                 throw new ConfigurationParseException(
                         config,
                         """
-                            No <graph> is specified, data is taken from the default graph.
+                            No <graph> or <graphs>is specified, data is taken from the default graph.
                             In this case <toFile> must be specified
                             %s"""
                                 .formatted(usage()));
@@ -178,12 +205,16 @@ public class WriteStep implements Step {
         return """
                            Usage:
 
-                            Provide a <write> element with optional <graph>s and one optional <toFile> elements.
+                            Provide a <write> element with
+                            - optional <graph> elements, listing graphs to write
+                            - an optional <graphs> element with <include> and <exclude> subelements, which
+                              take ant-style patterns
+                            - and one optional <toFile> elements.
 
-                            If <graph> is omitted, <toFile> must be present - in this case the content of the default
+                            If <graph> and <graphs> is omitted, <toFile> must be present - in this case the content of the default
                             graph is written to the file.
 
-                            The <toFile> element can be omitted if the system knows which file each <graph>
+                            The <toFile> element can be omitted if the system knows which file each graph
                             was read from, in which case it will overwrite that file with the contents of the graph.
 
                             The toFile element can have a triples or quads file extension (eg '.ttl' or '.trig').

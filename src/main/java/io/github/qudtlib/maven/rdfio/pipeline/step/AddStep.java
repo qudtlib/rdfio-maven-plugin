@@ -109,9 +109,8 @@ public class AddStep implements Step {
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         Map<String, Set<String>> targetGraphToInputsMap = new HashMap<>();
         String toGraphResolved = state.variables().resolve(toGraph, dataset);
-        String toGraphsPatternResolved = state.variables().resolve(toGraphsPattern, dataset);
         if (inputsComponent.hasNoInputs()) {
-            if (toGraphsPatternResolved == null && toGraphResolved == null) {
+            if (toGraphsPattern == null && toGraphResolved == null) {
                 throw new PipelineConfigurationExeception(
                         "<add> has neither inputs nor outputs!\n%s".formatted(usage()));
             }
@@ -139,11 +138,14 @@ public class AddStep implements Step {
                         targetGraph = toGraphResolved;
                     } else if (getToGraphsPattern() != null) {
                         String tgp =
-                                replaceVariables(
-                                        getToGraphsPattern(),
-                                        inputFilePath,
-                                        inputPath.getName(),
-                                        index);
+                                state.variables()
+                                        .resolve(
+                                                replaceVariables(
+                                                        getToGraphsPattern(),
+                                                        inputFilePath,
+                                                        inputPath.getName(),
+                                                        index),
+                                                dataset);
                         if (!tgp.equals(getToGraphsPattern())) {
                             // the replace did change something - each file gets its own graph
                             isBijectiveFileToGraphRel = true;
@@ -169,14 +171,17 @@ public class AddStep implements Step {
                             targetGraphToInputsMap,
                             toGraphResolved,
                             inputGraphs.stream().map(g -> "graph: " + g).toList());
-                } else if (toGraphsPatternResolved != null) {
+                } else if (toGraphsPattern != null) {
                     for (String sourceGraph : inputGraphs) {
                         String targetGraph =
-                                replaceVariables(
-                                        getToGraphsPattern(),
-                                        sourceGraph,
-                                        getName(sourceGraph),
-                                        index);
+                                state.variables()
+                                        .resolve(
+                                                replaceVariables(
+                                                        getToGraphsPattern(),
+                                                        sourceGraph,
+                                                        getName(sourceGraph),
+                                                        index),
+                                                dataset);
                         PipelineHelper.addGraphToGraph(dataset, sourceGraph, targetGraph, state);
                         addInputDescription(
                                 targetGraphToInputsMap, targetGraph, "graph: " + sourceGraph);

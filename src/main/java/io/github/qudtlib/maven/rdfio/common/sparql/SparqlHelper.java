@@ -109,31 +109,6 @@ public class SparqlHelper {
     }
 
     /**
-     * Executes a SPARQL update query on the dataset, pre-binding variables from the metadata graph.
-     *
-     * @param sparql The SPARQL update query to execute.
-     * @param dataset The Jena Dataset to update.
-     * @param metadataGraph The URI of the metadata graph (e.g., http://qudtlib.org/rdfio/metadata).
-     * @throws MojoExecutionException If the query is invalid or execution fails.
-     */
-    public static void executeSparqlAskWithVariables(
-            String sparql, Dataset dataset, String metadataGraph) throws MojoExecutionException {
-        sparql = addPrefixes(sparql, dataset);
-        QuerySolutionMap bindings = extractVariableBindings(dataset, metadataGraph);
-        UpdateRequest parsedUpdate;
-        try {
-            parsedUpdate = UpdateFactory.create(sparql);
-        } catch (Exception e) {
-            throw new MojoExecutionException(
-                    "Failed to execute SPARQL update:\n"
-                            + withLineNumbers(sparql)
-                            + "\n"
-                            + e.getMessage());
-        }
-        UpdateAction.execute(parsedUpdate, dataset, bindings);
-    }
-
-    /**
      * Executes a SPARQL query (SELECT, ASK, CONSTRUCT, or DESCRIBE) on the dataset, pre-binding
      * variables from the metadata graph, and processes the result using the provided
      * QueryResultProcessor.
