@@ -76,11 +76,12 @@ public class UntilStep implements Step {
             state.incIndentLevel();
             do {
                 i++;
-                state.log().info("");
                 state.log().info("<until> iteration %d: entering body".formatted(i));
+                state.log().info("");
                 if (indexVar != null) {
                     PipelineHelper.setPipelineVariable(
                             dataset, state, indexVar, ResourceFactory.createTypedLiteral(i));
+                    state.log().info("variable %s=%s".formatted(this.indexVar, i), 1);
                 }
                 for (Step step : body) {
                     step.executeAndWrapException(dataset, state);

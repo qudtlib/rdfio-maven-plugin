@@ -71,12 +71,17 @@ public class WriteStep implements Step {
             allGraphs.addAll(this.graphs);
         }
         if (this.graphSelection != null) {
-            List<String> selectedGraphs = PipelineHelper.getGraphs(dataset, graphSelection);
+            List<String> selectedGraphs = PipelineHelper.getGraphs(dataset, graphSelection, state);
             if (!selectedGraphs.isEmpty()) {
                 allGraphs.addAll(selectedGraphs);
             }
         }
         if (this.toFile == null) {
+            if (allGraphs.isEmpty()) {
+                throw new MojoExecutionException(
+                        "None of the specified <graph> or <graphs> found in dataset.%s"
+                                .formatted(usage()));
+            }
             writeOneFilePerGraph(dataset, state, allGraphs);
         } else {
             RelativePath outputPath =
@@ -124,9 +129,7 @@ public class WriteStep implements Step {
             Dataset dataset, PipelineState state, List<String> graphsToWrite)
             throws MojoExecutionException {
         if (graphsToWrite.isEmpty()) {
-            throw new MojoExecutionException(
-                    "Neither <graph> nor <toFile> is specified - that is not enough\n%s"
-                            .formatted(usage()));
+            throw new MojoExecutionException("No graphs found in dataset\n%s".formatted(usage()));
         }
         String outputFileStr;
         for (String graph : state.variables().resolve(graphsToWrite, dataset)) {
@@ -192,7 +195,7 @@ public class WriteStep implements Step {
                 throw new ConfigurationParseException(
                         config,
                         """
-                            No <graph> or <graphs>is specified, data is taken from the default graph.
+                            No <graph> or <graphs> specified, data is taken from the default graph.
                             In this case <toFile> must be specified
                             %s"""
                                 .formatted(usage()));

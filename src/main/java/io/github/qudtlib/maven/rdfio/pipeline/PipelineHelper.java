@@ -24,7 +24,8 @@ import org.apache.jena.riot.RDFFormat;
 
 public class PipelineHelper {
 
-    public static List<String> getGraphs(Dataset dataset, GraphSelection graphSelection) {
+    public static List<String> getGraphs(
+            Dataset dataset, GraphSelection graphSelection, PipelineState state) {
         if (graphSelection == null) return new ArrayList<>();
         List<String> result = new ArrayList<>();
         List<Pattern> includePatterns = new ArrayList<>();
@@ -32,12 +33,14 @@ public class PipelineHelper {
 
         // Convert include patterns to regex
         for (String include : graphSelection.getInclude()) {
-            includePatterns.add(Pattern.compile(wildcardToRegex(include)));
+            String resolvedPattern = state.variables().resolve(include, dataset);
+            includePatterns.add(Pattern.compile(wildcardToRegex(resolvedPattern)));
         }
 
         // Convert exclude patterns to regex
         for (String exclude : graphSelection.getExclude()) {
-            excludePatterns.add(Pattern.compile(wildcardToRegex(exclude)));
+            String resolvedPattern = state.variables().resolve(exclude, dataset);
+            excludePatterns.add(Pattern.compile(wildcardToRegex(resolvedPattern)));
         }
 
         // Match graph names against patterns
@@ -177,11 +180,6 @@ public class PipelineHelper {
             metaModel.add(
                     RDFIO.NoFile, RDFIO.loadsInto, ResourceFactory.createResource(targetGraph));
         }
-    }
-
-    public static boolean isFileBoundToGraph(RelativePath inputPath, Model metaModel) {
-        return metaModel.contains(
-                inputPath.getRelativePathAsResource(), RDFIO.loadsInto, (RDFNode) null);
     }
 
     /**
@@ -397,6 +395,7 @@ public class PipelineHelper {
                                 stmt.getSubject().isURIResource()
                                         ? stmt.getSubject().getURI()
                                         : stmt.getSubject().toString();
+                        subject = subject.replaceFirst(RelativePath.FILE_URL_PREFIX, "");
                         String graph = stmt.getObject().asResource().getURI();
                         p.printf("  %s -> %s%n", subject, graph);
                     }
@@ -418,7 +417,7 @@ public class PipelineHelper {
         while (it.hasNext()) {
             String graphPath = it.next().getSubject().toString();
             if (!graphPath.equals(RDFIO.NoFile.toString())) {
-                files.add(graphPath);
+                files.add(graphPath.replaceFirst(RelativePath.FILE_URL_PREFIX, ""));
             }
         }
         return files;

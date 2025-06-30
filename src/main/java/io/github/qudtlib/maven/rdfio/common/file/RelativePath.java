@@ -7,6 +7,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 
 public class RelativePath {
+    public static final String FILE_URL_PREFIX = "file://";
     private static final Pattern TRAVERSAL_PATTERN = Pattern.compile("(^|/)\\.\\.(/|$)");
     private static final Pattern ABSOLUTE_PATH_PATTERN = Pattern.compile("^(/|\\\\|[a-zA-Z]:\\\\)");
 
@@ -143,7 +144,7 @@ public class RelativePath {
     }
 
     public Resource getRelativePathAsResource() {
-        return ResourceFactory.createResource(getRelativePath());
+        return ResourceFactory.createResource(FILE_URL_PREFIX + getRelativePath());
     }
 
     public RelativePath subDir(String dirName) {
