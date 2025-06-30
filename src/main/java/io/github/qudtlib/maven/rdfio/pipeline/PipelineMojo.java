@@ -286,11 +286,18 @@ public class PipelineMojo extends AbstractMojo {
                     this::setPipeline,
                     Pipeline::usage);
         } catch (ConfigurationParseException e) {
-            throw new MojoExecutionException(
-                    "Error parsing <pipeline> at element:\n%s\n\n%s"
-                            .formatted(
-                                    skipFirstLine(e.getConfiguration().toString()), e.getMessage()),
-                    e);
+            if (e.getConfiguration() != null) {
+                throw new MojoExecutionException(
+                        "Error parsing <pipeline> at element:\n%s\n\n%s"
+                                .formatted(
+                                        skipFirstLine(e.getConfiguration().toString()),
+                                        e.getMessage()),
+                        e);
+            } else {
+                throw new MojoExecutionException(
+                        "Error parsing pipeline: %s (no configuration xml provided)"
+                                .formatted(e.getMessage()));
+            }
         }
     }
 
