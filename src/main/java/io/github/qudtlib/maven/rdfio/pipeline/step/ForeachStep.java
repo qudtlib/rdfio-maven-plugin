@@ -15,7 +15,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class ForeachStep implements Step {
+    private String message;
+
     private String var;
+
+    private String indexVar;
 
     private Values values;
 
@@ -45,6 +49,22 @@ public class ForeachStep implements Step {
         this.body.add(step);
     }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public String getIndexVar() {
+        return indexVar;
+    }
+
+    public void setIndexVar(String indexVar) {
+        this.indexVar = indexVar;
+    }
+
     @Override
     public String getElementName() {
         return "foreach";
@@ -55,15 +75,36 @@ public class ForeachStep implements Step {
         if (var == null || values == null || body.isEmpty()) {
             throw new MojoExecutionException("Var, values, and body are required in foreach step");
         }
-        List<String> graphNames = PipelineHelper.getGraphs(dataset, values.getGraphs());
+        if (message != null) {
+            state.log().info(message, 1);
+        }
+        state.log().info("loop variable: " + var, 1);
+        if (indexVar != null) {
+            state.log().info("index variable: " + indexVar, 1);
+        }
+        List<RDFNode> graphNames = values.getValues(dataset, state);
         try {
+            int index = 0;
             state.incIndentLevel();
-            for (String graphName : graphNames) {
-                Resource graphNameRes = ResourceFactory.createResource(graphName);
-                PipelineHelper.setPipelineVariable(dataset, state, var, graphNameRes);
+            for (RDFNode currentValue : graphNames) {
+                index++;
+                state.log().info("<foreach> iteration %d: entering body".formatted(index));
+                PipelineHelper.setPipelineVariable(dataset, state, var, currentValue);
+                state.log().info("variables", 1);
+                state.log().info("%s=%s".formatted(this.var, currentValue), 2);
+                if (this.indexVar != null) {
+                    state.log().info("%s=%s".formatted(this.indexVar, index), 2);
+                }
+                state.log().info("");
+                PipelineHelper.setPipelineVariable(
+                        dataset,
+                        state,
+                        indexVar,
+                        ResourceFactory.createTypedLiteral(Integer.toString(index)));
                 for (Step step : body) {
                     step.executeAndWrapException(dataset, state);
                 }
+                state.log().info("<foreach> iteration %d: end of body".formatted(index));
             }
         } finally {
             state.decIndentLevel();
@@ -80,8 +121,8 @@ public class ForeachStep implements Step {
             if (var != null) {
                 digest.update(var.getBytes(StandardCharsets.UTF_8));
             }
-            if (values != null && values.getGraphs() != null) {
-                values.getGraphs().updateHash(digest, state);
+            if (values != null) {
+                values.updateHash(digest, state);
             }
             String subPreviousHash = "";
             for (Step subStep : body) {
@@ -107,6 +148,8 @@ public class ForeachStep implements Step {
         }
 
         ParsingHelper.requiredStringChild(config, "var", step::setVar, step::usage);
+        ParsingHelper.optionalStringChild(config, "indexVar", step::setIndexVar, step::usage);
+        ParsingHelper.optionalStringChild(config, "message", step::setMessage, step::usage);
         ParsingHelper.requiredDomChild(
                 config, "values", Values::parse, step::setValues, step::usage);
 
