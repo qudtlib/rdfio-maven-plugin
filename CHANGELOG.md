@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Filename handling in metadata graph of pipeline mojo
+
 ## [1.4.2] - 2025-06-24
+
+### Added
+
+- Pipeline Mojo
 
 ## [1.4.1] - 2025-06-23
 
