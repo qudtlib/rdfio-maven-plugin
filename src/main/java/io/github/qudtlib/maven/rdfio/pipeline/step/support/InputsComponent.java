@@ -133,9 +133,7 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
     public List<String> getAllInputGraphs(Dataset dataset, PipelineState state) {
         List<String> allGraphs = new ArrayList<>();
         allGraphs.addAll(state.variables().resolve(this.graphs, dataset));
-        allGraphs.addAll(
-                PipelineHelper.getGraphs(
-                        dataset, state.variables().resolve(graphSelection, dataset)));
+        allGraphs.addAll(PipelineHelper.getGraphs(dataset, graphSelection, state));
         return allGraphs;
     }
 
