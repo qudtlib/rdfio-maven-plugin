@@ -8,7 +8,6 @@ import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -32,7 +31,7 @@ public class FileAccess {
         state.log().debug("Reading RDF from: " + file.getAbsolutePath());
         try (FileInputStream fis = new FileInputStream(file)) {
             RDFDataMgr.read(model, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TTL));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to read RDF file: " + file, e);
         }
     }
@@ -45,7 +44,7 @@ public class FileAccess {
         try (FileInputStream fis = new FileInputStream(file)) {
             RDFDataMgr.read(
                     dataset, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TRIG));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to read RDF file: " + file, e);
         }
     }
@@ -60,7 +59,7 @@ public class FileAccess {
                         model, fis, RDFDataMgr.determineLang(file.getName(), null, Lang.TTL));
                 model.add(newModel);
                 model.setNsPrefixes(newModel.getNsPrefixMap());
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new FileAccessException("Failed to load RDF file: " + path, e);
             }
         }
@@ -84,7 +83,7 @@ public class FileAccess {
         state.log().debug("Writing RDF dataset to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, dataset, lang);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to write RDF file: " + file, e);
         }
     }
@@ -100,7 +99,7 @@ public class FileAccess {
         state.log().debug("Writing RDF model to: " + file.getAbsolutePath());
         try (FileOutputStream fos = new FileOutputStream(file)) {
             RDFDataMgr.write(fos, model, lang);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to write RDF file: " + file, e);
         }
     }
@@ -112,7 +111,7 @@ public class FileAccess {
         state.log().debug("Reading text from: " + file.getAbsolutePath());
         try {
             return Files.readString(file.toPath(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to read text file: " + file, e);
         }
     }
@@ -127,7 +126,7 @@ public class FileAccess {
         state.log().debug("Writing text to: " + file.getAbsolutePath());
         try {
             Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to write text file: " + file, e);
         }
     }
@@ -137,7 +136,7 @@ public class FileAccess {
         state.log().debug("Deleting file: " + file.getAbsolutePath());
         try {
             Files.deleteIfExists(file.toPath());
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new FileAccessException("Failed to delete file: " + file, e);
         }
     }
