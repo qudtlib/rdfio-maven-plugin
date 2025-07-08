@@ -135,6 +135,15 @@
                         <nexusUrl>https://ossrh-staging-api.central.sonatype.com</nexusUrl>
                         <autoReleaseAfterClose>true</autoReleaseAfterClose>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>deploy-to-central</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
