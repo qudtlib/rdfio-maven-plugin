@@ -116,11 +116,15 @@
                     </executions>
 
                 </plugin>
+
                 <plugin>
                     <!--
                         configuring nexus plugin for manual deployment after
                         release with maven-release/deploy-plugin, see
                         https://central.sonatype.org/publish/publish-maven/#manually-releasing-the-deployment-to-the-central-repository
+                        (old nexus service,
+                        https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
+                        (compatibility service for old config)
                      -->
                     <groupId>org.sonatype.plugins</groupId>
                     <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -128,7 +132,7 @@
                     <extensions>true</extensions>
                     <configuration>
                         <serverId>ossrh</serverId>
-                        <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                        <nexusUrl>https://ossrh-staging-api.central.sonatype.com</nexusUrl>
                         <autoReleaseAfterClose>true</autoReleaseAfterClose>
                     </configuration>
                 </plugin>
