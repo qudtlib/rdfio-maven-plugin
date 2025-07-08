@@ -218,7 +218,7 @@ public class AddStep implements Step {
             String targetGraph,
             String inputDescription) {
         targetGraphToInputsMap.compute(
-                targetGraph,
+                Optional.ofNullable(targetGraph).orElse(DEFAULT_GRAPH_NAME),
                 (key, names) -> {
                     if (names == null) {
                         names = new HashSet();
