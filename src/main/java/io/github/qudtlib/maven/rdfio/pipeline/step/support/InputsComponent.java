@@ -130,6 +130,13 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
         return result;
     }
 
+    public List<RelativePath> getAllInputPathsWithoutResolvingVariables(PipelineState state) {
+        List<RelativePath> result = new ArrayList<>();
+        result.addAll(state.files().make(getFiles()));
+        result.addAll(FileAccess.resolveFileSelection(getFileSelection(), state.getBaseDir()));
+        return result;
+    }
+
     public List<String> getAllInputGraphs(Dataset dataset, PipelineState state) {
         List<String> allGraphs = new ArrayList<>();
         allGraphs.addAll(state.variables().resolve(this.graphs, dataset));
@@ -143,6 +150,11 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
         if (fileSelection != null) {
             for (String include : fileSelection.getInclude()) {
                 digest.update(include.getBytes(StandardCharsets.UTF_8));
+            }
+            List<RelativePath> paths = getAllInputPathsWithoutResolvingVariables(state);
+            for (RelativePath path : paths) {
+                String content = state.files().readText(path);
+                digest.update(content.getBytes(StandardCharsets.UTF_8));
             }
             for (String exclude : fileSelection.getExclude()) {
                 digest.update(exclude.getBytes(StandardCharsets.UTF_8));
