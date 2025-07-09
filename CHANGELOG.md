@@ -7,14 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.5] - 2025-07-09
 ### Added
-
 - Add `<message>` to `<write>` step
 
 ## [1.4.4] - 2025-07-08
-
 ### Fixed
-
 - `<add>` multiple files to default graph no longer dies
 - step hash now includes file content for InputsComponent (if filenames/paths don't contain variables, which are only known at pipeline execution time)
 
@@ -65,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.4...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.5...HEAD
+[1.4.5]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.4...v1.4.5
 [1.4.4]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.1...v1.4.2
