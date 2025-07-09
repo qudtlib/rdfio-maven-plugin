@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `<message>` to `<write>` step
+
 ## [1.4.4] - 2025-07-08
+
+### Fixed
+
+- `<add>` multiple files to default graph no longer dies
+- step hash now includes file content for InputsComponent (if filenames/paths don't contain variables, which are only known at pipeline execution time)
+
+###
 
 ## [1.4.3] - 2025-06-30
 ### Fixed

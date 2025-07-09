@@ -22,6 +22,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 public class WriteStep implements Step {
+    private String message = null;
     private final List<String> graphs = new ArrayList<>();
 
     private String toFile;
@@ -52,6 +53,14 @@ public class WriteStep implements Step {
         this.toFile = toFile;
     }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
     @Override
     public String getElementName() {
         return "write";
@@ -59,7 +68,9 @@ public class WriteStep implements Step {
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
-
+        if (message != null) {
+            state.log().info(state.variables().resolve(message, dataset));
+        }
         // possible cases
         // 1. no toFile - each graph must have an associated file
         // 2. toFile is a triples format (eg. xyz.ttl) - the union of all graphs is written to the
@@ -159,6 +170,9 @@ public class WriteStep implements Step {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));
             digest.update("write".getBytes(StandardCharsets.UTF_8));
+            if (message != null) {
+                digest.update(message.getBytes(StandardCharsets.UTF_8));
+            }
             if (graphSelection != null) {
                 graphSelection.updateHash(digest, state);
             }
@@ -185,6 +199,7 @@ public class WriteStep implements Step {
         }
 
         WriteStep step = new WriteStep();
+        ParsingHelper.optionalStringChild(config, "message", step::setMessage, WriteStep::usage);
         ParsingHelper.optionalStringChildren(config, "graph", step::addGraph, WriteStep::usage);
         ParsingHelper.optionalDomChild(
                 config, "graphs", GraphSelection::parse, step::setGraphSelection, WriteStep::usage);
