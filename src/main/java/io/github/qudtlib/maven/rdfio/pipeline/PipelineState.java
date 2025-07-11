@@ -250,7 +250,12 @@ public class PipelineState {
         }
 
         public void info(String content, int indentLevels) {
-            LogHelper.info(log, content, indentLevels + indentLevel);
+            String[] lines = content.split("\r\n|\r|\n");
+
+            LogHelper.info(
+                    log,
+                    Arrays.stream(lines).map(String::trim).toList(),
+                    indentLevels + indentLevel);
         }
     }
 
