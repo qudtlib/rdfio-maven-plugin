@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- a few custom sparql functions for decimals:
+- division https://github.com/qudtlib/numericFunctions/decimal.div
+- power https://github.com/qudtlib/numericFunctions/decimal.pow
+- precision https://github.com/qudtlib/numericFunctions/decimal.precision
+- roundToPrecision https://github.com/qudtlib/numericFunctions/decimal.roundToPrecision
+- <when> step
+- <stop> step
+
+### Changed
+
+- changed the URI prefix for resources used in pipeline metadata to https://github.com/qudtlib/rdfio/
+- <clear> now supports <message>, <graphs> and <graph> subelements to support clearing specified graphs, not the whole dataset
+
 ## [1.4.5] - 2025-07-09
 ### Added
 - Add `<message>` to `<write>` step

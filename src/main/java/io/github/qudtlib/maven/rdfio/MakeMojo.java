@@ -39,6 +39,7 @@ public class MakeMojo extends AbstractRdfioMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         getLog().info("Making RDF files");
+        SparqlHelper.registerNumericFunctions();
         Dataset dataset = DatasetFactory.create();
         FileSelection shaclFunctionFileSelection = products.getImportShaclFunctions();
         Model shaclFunctionsModel = null;

@@ -163,5 +163,8 @@ public class InputsComponent<T extends Step> implements StepComponent<T> {
         for (String g : graphs) {
             digest.update(g.getBytes(StandardCharsets.UTF_8));
         }
+        if (graphSelection != null) {
+            graphSelection.updateHash(digest, state);
+        }
     }
 }

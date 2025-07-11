@@ -4,6 +4,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.*;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -135,34 +136,72 @@ public class Pipeline {
         if (stepsDom != null) {
             for (Xpp3Dom stepDom : stepsDom.getChildren()) {
                 String stepType = stepDom.getName();
-                Step step =
-                        switch (stepType) {
-                            case "add" -> AddStep.parse(stepDom);
-                            case "assert" -> AssertStep.parse(stepDom);
-                            case "clear" -> ClearStep.parse(stepDom);
-                            case "foreach" -> ForeachStep.parse(stepDom);
-                            case "savepoint" -> SavepointStep.parse(stepDom);
-                            case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
-                            case "shaclInfer" -> ShaclInferStep.parse(stepDom);
-                            case "shaclValidate" -> ShaclValidateStep.parse(stepDom);
-                            case "sparqlQuery" -> SparqlQueryStep.parse(stepDom);
-                            case "sparqlUpdate" -> SparqlUpdateStep.parse(stepDom);
-                            case "until" -> UntilStep.parse(stepDom);
-                            case "write" -> WriteStep.parse(stepDom);
-                            default ->
-                                    throw new ConfigurationParseException(
-                                            config,
-                                            "Unknown step type: "
-                                                    + stepType
-                                                    + ".\n"
-                                                    + "Usage: Use one of: <add>, <sparqlUpdate>, <savepoint>, <shaclFunctions>, <shaclInfer>, <shaclValidate>, <write>, <foreach>.\n"
-                                                    + "Example: <add><file>data.ttl</file><toGraph>test:graph</toGraph></add>");
-                        };
+                Step step = parseStep(config, stepDom, stepType, "pipeline");
                 steps.add(step);
             }
         }
         pipeline.setSteps(steps);
         return pipeline;
+    }
+
+    public static Step parseStep(
+            Xpp3Dom config,
+            Xpp3Dom stepDom,
+            String stepType,
+            String parentType,
+            String... excluded) {
+        if (Arrays.stream(excluded).anyMatch(s -> s.equals(stepType))) {
+            throw new ConfigurationParseException(
+                    config,
+                    "Step type %s is not allowed as a child of %s."
+                            .formatted(stepType, parentType));
+        }
+        Step step =
+                switch (stepType) {
+                    case "add" -> AddStep.parse(stepDom);
+                    case "assert" -> AssertStep.parse(stepDom);
+                    case "clear" -> ClearStep.parse(stepDom);
+                    case "foreach" -> ForeachStep.parse(stepDom);
+                    case "when" -> WhenStep.parse(stepDom);
+                    case "savepoint" -> SavepointStep.parse(stepDom);
+                    case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
+                    case "shaclInfer" -> ShaclInferStep.parse(stepDom);
+                    case "shaclValidate" -> ShaclValidateStep.parse(stepDom);
+                    case "sparqlQuery" -> SparqlQueryStep.parse(stepDom);
+                    case "sparqlUpdate" -> SparqlUpdateStep.parse(stepDom);
+                    case "stop" -> StopStep.parse(stepDom);
+                    case "until" -> UntilStep.parse(stepDom);
+                    case "write" -> WriteStep.parse(stepDom);
+                    default ->
+                            throw new ConfigurationParseException(
+                                    config,
+                                    """
+                                            Unknown step type: %s
+
+                                            Usage: Use one of:
+                                                <add>
+                                                <assert>
+                                                <clear>
+                                                <foreach>
+                                                <if>
+                                                <savepoint>
+                                                <shaclFunctions>
+                                                <shaclInfer>
+                                                <shaclValidate>
+                                                <sparqlQuery>
+                                                <sparqlUpdate>
+                                                <stop>
+                                                <until>
+                                                <write>
+
+                                            Example:
+                                                <add>
+                                                    <file>data.ttl</file>
+                                                    <toGraph>test:graph</toGraph>
+                                                </add>"""
+                                            .formatted(stepType));
+                };
+        return step;
     }
 
     public static String usage() {

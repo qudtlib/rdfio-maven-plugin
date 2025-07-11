@@ -11,7 +11,7 @@ import org.apache.jena.rdf.model.ResourceFactory;
 public final class RDFIO {
 
     /** Namespace for the RDF I/O vocabulary. */
-    public static final String NS = "http://qudtlib.org/rdfio/";
+    public static final String NS = "https://github.com/qudtlib/rdfio/";
 
     /** Property relating a file URI to a graph URI (e.g., file://path loadsInto test:graph). */
     public static final Property loadsInto = ResourceFactory.createProperty(NS + "loadsInto");

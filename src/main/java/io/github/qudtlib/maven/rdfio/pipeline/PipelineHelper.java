@@ -454,4 +454,22 @@ public class PipelineHelper {
         }
         return List.of();
     }
+
+    public static List<String> collectAllGraphReferences(
+            Dataset dataset,
+            PipelineState state,
+            List<String> graphs,
+            GraphSelection graphSelection) {
+        List<String> allGraphs = new ArrayList<>();
+        if (graphs != null) {
+            graphs.stream().map(g -> state.variables().resolve(g, dataset)).forEach(allGraphs::add);
+        }
+        if (graphSelection != null) {
+            List<String> selectedGraphs = getGraphs(dataset, graphSelection, state);
+            if (!selectedGraphs.isEmpty()) {
+                allGraphs.addAll(selectedGraphs);
+            }
+        }
+        return allGraphs;
+    }
 }

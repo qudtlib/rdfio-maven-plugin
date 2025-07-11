@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.SavepointStep;
 import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
@@ -84,6 +85,7 @@ public class PipelineMojo extends AbstractMojo {
             if (pipeline == null) {
                 throw new MojoExecutionException("Pipeline configuration is required");
             }
+            SparqlHelper.registerNumericFunctions();
             // Apply forceRun from Maven property
             // set it to anything else than 'false', including nothing, force is activated
             if (forceRun != null) {
