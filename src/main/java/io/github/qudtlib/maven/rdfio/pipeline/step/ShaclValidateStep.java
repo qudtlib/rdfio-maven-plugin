@@ -10,6 +10,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ResultSeverityConfig;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ValidationReportComponent;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
+import io.github.qudtlib.maven.rdfio.pipeline.support.PipelineConfigurationExeception;
 import io.github.qudtlib.maven.rdfio.pipeline.support.VariableResolver;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -371,7 +372,16 @@ public class ShaclValidateStep implements Step {
             allGraphs.addAll(additionalGraphs);
             allGraphs.addAll(inputsComponent.getAllInputGraphs(dataset, state));
             if (allGraphs != null) {
-                allGraphs.forEach(g -> dataModel.add(dataset.getNamedModel(g)));
+                allGraphs.forEach(
+                        g -> {
+                            if (!dataset.containsNamedModel(g)
+                                    && !state.getShaclFunctionsGraph().equals(g)) {
+                                throw new PipelineConfigurationExeception(
+                                        "No graph %s found in dataset, cannot use in shaclValidate"
+                                                .formatted(g));
+                            }
+                            dataModel.add(dataset.getNamedModel(g));
+                        });
             }
             entries.addAll(PipelineHelper.formatGraphs(allGraphs));
         }
