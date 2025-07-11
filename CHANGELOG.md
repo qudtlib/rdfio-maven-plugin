@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2025-07-11
 ### Added
-
 - a few custom sparql functions for decimals:
 - division https://github.com/qudtlib/numericFunctions/decimal.div
 - power https://github.com/qudtlib/numericFunctions/decimal.pow
@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - <stop> step
 
 ### Changed
-
 - changed the URI prefix for resources used in pipeline metadata to https://github.com/qudtlib/rdfio/
 - <clear> now supports <message>, <graphs> and <graph> subelements to support clearing specified graphs, not the whole dataset
 
@@ -78,7 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.5...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.5...v1.5.0
 [1.4.5]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.4...v1.4.5
 [1.4.4]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.2...v1.4.3
