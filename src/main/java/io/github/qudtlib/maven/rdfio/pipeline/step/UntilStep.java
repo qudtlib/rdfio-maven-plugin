@@ -161,26 +161,7 @@ public class UntilStep implements Step {
         for (Xpp3Dom bodyStepConfig : bodyDom.getChildren()) {
             String bodyStepType = bodyStepConfig.getName();
             Step bodyStep =
-                    switch (bodyStepType) {
-                        case "add" -> AddStep.parse(bodyStepConfig);
-                        case "assert" -> AssertStep.parse(bodyStepConfig);
-                        case "clear" -> ClearStep.parse(bodyStepConfig);
-                        case "foreach" -> ForeachStep.parse(bodyStepConfig);
-                        case "shaclInfer" -> ShaclInferStep.parse(bodyStepConfig);
-                        case "shaclValidate" -> ShaclValidateStep.parse(bodyStepConfig);
-                        case "sparqlQuery" -> SparqlQueryStep.parse(bodyStepConfig);
-                        case "sparqlUpdate" -> SparqlUpdateStep.parse(bodyStepConfig);
-                        case "until" -> UntilStep.parse(bodyStepConfig);
-                        case "write" -> WriteStep.parse(bodyStepConfig);
-                        default ->
-                                throw new ConfigurationParseException(
-                                        config,
-                                        "Invalid step type in until <body>: "
-                                                + bodyStepType
-                                                + ".\n"
-                                                + "Usage: Use one of: <add>, <sparqlUpdate>, <shaclInfer>, <shaclValidate>, <write>, <foreach>, <until>.\n"
-                                                + "Example: <body><sparqlUpdate><sparql>...</sparql></sparqlUpdate></body>");
-                    };
+                    Pipeline.parseStep(config, bodyStepConfig, bodyStepType, "until", "savepoint");
             step.addBodyStep(bodyStep);
         }
 
