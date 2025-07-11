@@ -3,6 +3,10 @@ package io.github.qudtlib.maven.rdfio.common.sparql;
 import static io.github.qudtlib.maven.rdfio.filter.GraphsHelper.getAllModels;
 
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
+import io.github.qudtlib.maven.rdfio.common.sparql.function.DecimalDiv;
+import io.github.qudtlib.maven.rdfio.common.sparql.function.DecimalPow;
+import io.github.qudtlib.maven.rdfio.common.sparql.function.DecimalPrecision;
+import io.github.qudtlib.maven.rdfio.common.sparql.function.DecimalRoundToPrecision;
 import io.github.qudtlib.maven.rdfio.sparql.ShaclSparqlFunctionRegistrar;
 import java.util.Collection;
 import java.util.Map;
@@ -13,7 +17,7 @@ import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.sparql.function.FunctionRegistry;
+import org.apache.jena.sparql.function.*;
 import org.apache.jena.update.UpdateAction;
 import org.apache.jena.update.UpdateFactory;
 import org.apache.jena.update.UpdateRequest;
@@ -142,6 +146,15 @@ public class SparqlHelper {
             throw new MojoExecutionException(
                     "Failed to execute SPARQL query:\n" + withLineNumbers(sparql), e);
         }
+    }
+
+    public static void registerNumericFunctions() {
+
+        FunctionRegistry registry = FunctionRegistry.get();
+        registry.put(DecimalDiv.getUri(), DecimalDiv.class);
+        registry.put(DecimalPow.getUri(), DecimalPow.class);
+        registry.put(DecimalPrecision.getUri(), DecimalPrecision.class);
+        registry.put(DecimalRoundToPrecision.getUri(), DecimalRoundToPrecision.class);
     }
 
     public static void registerShaclFunctions(Dataset dataset, String graphName, Log log) {

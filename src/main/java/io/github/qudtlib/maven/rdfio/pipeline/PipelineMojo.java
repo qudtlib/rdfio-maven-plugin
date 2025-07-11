@@ -84,6 +84,7 @@ public class PipelineMojo extends AbstractMojo {
             if (pipeline == null) {
                 throw new MojoExecutionException("Pipeline configuration is required");
             }
+            SparqlHelper.registerNumericFunctions();
             // Apply forceRun from Maven property
             // set it to anything else than 'false', including nothing, force is activated
             if (forceRun != null) {
