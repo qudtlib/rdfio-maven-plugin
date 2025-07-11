@@ -146,7 +146,10 @@ public class ShaclInferStepExecuteTests {
                 """;
         Xpp3Dom config = buildConfig(xml);
         ShaclInferStep step = ShaclInferStep.parse(config);
-        step.execute(dataset, state);
+        assertThrows(
+                MojoExecutionException.class,
+                () -> step.execute(dataset, state),
+                "Should throw when shapes data graph does not exist in dataset");
     }
 
     @Test
@@ -169,7 +172,11 @@ public class ShaclInferStepExecuteTests {
         Xpp3Dom config = buildConfig(xml);
         ShaclInferStep step = ShaclInferStep.parse(config);
         // Setup empty data graph
-        dataset.getNamedModel("test:data");
+        Model m = dataset.getNamedModel("test:data");
+        m.add(
+                ResourceFactory.createResource("http://example.org/s"),
+                ResourceFactory.createProperty("http://example.org/p"),
+                ResourceFactory.createResource("http://example.org/o"));
         step.execute(dataset, state);
     }
 

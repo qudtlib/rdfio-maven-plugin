@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.step.SavepointStep;
 import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
