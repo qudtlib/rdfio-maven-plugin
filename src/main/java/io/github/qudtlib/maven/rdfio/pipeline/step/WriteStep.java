@@ -77,16 +77,9 @@ public class WriteStep implements Step {
         // file
         // 3. toFile is a quads format (eg.  xyz.trig) - each graph is written to the file with the
         // graph uri as the fourth element
-        List<String> allGraphs = new ArrayList<>();
-        if (this.graphs != null) {
-            allGraphs.addAll(this.graphs);
-        }
-        if (this.graphSelection != null) {
-            List<String> selectedGraphs = PipelineHelper.getGraphs(dataset, graphSelection, state);
-            if (!selectedGraphs.isEmpty()) {
-                allGraphs.addAll(selectedGraphs);
-            }
-        }
+        List<String> allGraphs =
+                PipelineHelper.collectAllGraphReferences(
+                        dataset, state, this.graphs, this.graphSelection);
         if (this.toFile == null) {
             if (allGraphs.isEmpty()) {
                 throw new MojoExecutionException(
