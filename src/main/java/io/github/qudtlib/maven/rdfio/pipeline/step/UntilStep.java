@@ -1,6 +1,7 @@
 package io.github.qudtlib.maven.rdfio.pipeline.step;
 
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.Pipeline;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
@@ -98,11 +99,19 @@ public class UntilStep implements Step {
                             }
                         });
                 state.log().info("");
+                state.log().info("<until> iteration %d:".formatted(i), 1);
                 state.log()
                         .info(
-                                "<until> iteration %d: ask query yields %s"
-                                        .formatted(i, Boolean.toString(result[0])));
+                                "SPARQL ASK query result: %s"
+                                        .formatted(Boolean.toString(result[0])),
+                                2);
+                if (result[0]) {
+                    state.log().info("Condition true, exiting loop", 2);
+                } else {
+                    state.log().info("Condition false, continuing loop", 2);
+                }
             } while (!result[0]);
+            state.log().info("<until> loop finished".formatted(i));
         } finally {
             state.decIndentLevel();
         }
