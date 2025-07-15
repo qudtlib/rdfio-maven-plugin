@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2025-07-11
 ### Fixed
-
 - fixed plugin.xml
 
 ## [1.5.0] - 2025-07-11
@@ -81,7 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.5...v1.5.0
 [1.4.5]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.4...v1.4.5
 [1.4.4]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.3...v1.4.4
