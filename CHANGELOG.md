@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.5.3] - 2025-07-15
 
+### Fixed
+
+- fix ${project.basedir} being baked in at build time
+
 ## [1.5.2] - 2025-07-15
 ### Fixed
 - fix decimal.pow() - return 0 for value 0 and negative exponent
