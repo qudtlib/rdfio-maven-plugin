@@ -34,7 +34,13 @@ public class DecimalPow extends FunctionBase3 {
         BigInteger biExponent = exponent.getInteger();
         BigInteger biPrecision = precision.getInteger();
         MathContext mc = new MathContext(biPrecision.intValueExact());
-        BigDecimal result = bdValue.pow(biExponent.intValueExact(), mc);
+        int intExponent = biExponent.intValueExact();
+        if (intExponent < 0) {
+            if (bdValue.compareTo(BigDecimal.ZERO) == 0) {
+                return NodeValue.makeDecimal(BigDecimal.ZERO);
+            }
+        }
+        BigDecimal result = bdValue.pow(intExponent, mc);
         return NodeValue.makeDecimal(result);
     }
 }
