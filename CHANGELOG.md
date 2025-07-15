@@ -6,14 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Fixed
+
 - fix decimal.pow() - return 0 for value 0 and negative exponent
 
 ## [1.5.1] - 2025-07-11
+
 ### Fixed
 
 - fixed plugin.xml
 
 ## [1.5.0] - 2025-07-11
+
 ### Added
 
 - a few custom sparql functions for decimals:
@@ -25,26 +30,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - <stop> step
 
 ### Changed
+
 - changed the URI prefix for resources used in pipeline metadata to https://github.com/qudtlib/rdfio/
 - <clear> now supports <message>, <graphs> and <graph> subelements to support clearing specified graphs, not the whole dataset
 
 ## [1.4.5] - 2025-07-09
+
 ### Added
+
 - Add `<message>` to `<write>` step
 
 ## [1.4.4] - 2025-07-08
+
 ### Fixed
+
 - `<add>` multiple files to default graph no longer dies
 - step hash now includes file content for InputsComponent (if filenames/paths don't contain variables, which are only known at pipeline execution time)
 
 ###
 
 ## [1.4.3] - 2025-06-30
+
 ### Fixed
+
 - Filename handling in metadata graph of pipeline mojo
 
 ## [1.4.2] - 2025-06-24
+
 ### Added
+
 - Pipeline Mojo
 
 ## [1.4.1] - 2025-06-23
