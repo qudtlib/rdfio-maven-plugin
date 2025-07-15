@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2025-07-15
+
 ## [1.5.2] - 2025-07-15
 ### Fixed
 - fix decimal.pow() - return 0 for value 0 and negative exponent
@@ -85,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.3...HEAD
+[1.5.3]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.4.5...v1.5.0
