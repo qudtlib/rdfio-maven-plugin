@@ -60,10 +60,10 @@ Call mvn rdfio:help -Ddetail=true -Dgoal=&lt;goal-name&gt; to display parameter 
         </parameter>
       </parameters>
       <configuration>
-        <detail implementation="boolean" default-value="false">${detail}</detail>
-        <goal implementation="java.lang.String">${goal}</goal>
-        <indentSize implementation="int" default-value="2">${indentSize}</indentSize>
-        <lineLength implementation="int" default-value="80">${lineLength}</lineLength>
+        <detail implementation="boolean" default-value="false">\${detail}</detail>
+        <goal implementation="java.lang.String">\${goal}</goal>
+        <indentSize implementation="int" default-value="2">\${indentSize}</indentSize>
+        <lineLength implementation="int" default-value="80">\${lineLength}</lineLength>
       </configuration>
     </mojo>
     <mojo>
@@ -104,7 +104,7 @@ Call mvn rdfio:help -Ddetail=true -Dgoal=&lt;goal-name&gt; to display parameter 
         </parameter>
       </parameters>
       <configuration>
-        <basedir implementation="java.io.File" default-value="${project.basedir}"/>
+        <basedir implementation="java.io.File" default-value="\${project.basedir}"/>
         <defaultOutputDir implementation="java.lang.String" default-value="target/rdfio-products"/>
       </configuration>
     </mojo>
@@ -166,12 +166,12 @@ Call mvn rdfio:help -Ddetail=true -Dgoal=&lt;goal-name&gt; to display parameter 
         </parameter>
       </parameters>
       <configuration>
-        <baseDir implementation="java.io.File" default-value="${project.basedir}"/>
-        <mojoExecution implementation="org.apache.maven.plugin.MojoExecution" default-value="${mojoExecution}"/>
-        <project implementation="org.apache.maven.project.MavenProject" default-value="${project}"/>
-        <workBaseDir implementation="java.io.File" default-value="${project.build.directory}"/>
-        <forceRun implementation="java.lang.String" default-value="${rdfio.pipeline.forceRun}"/>
-        <resumeAtSavepointId implementation="java.lang.String" default-value="${rdfio.pipeline.resumeAtSavepointId}"/>
+        <baseDir implementation="java.io.File" default-value="\${project.basedir}"/>
+        <mojoExecution implementation="org.apache.maven.plugin.MojoExecution" default-value="\${mojoExecution}"/>
+        <project implementation="org.apache.maven.project.MavenProject" default-value="\${project}"/>
+        <workBaseDir implementation="java.io.File" default-value="\${project.build.directory}"/>
+        <forceRun implementation="java.lang.String" default-value="\${rdfio.pipeline.forceRun}"/>
+        <resumeAtSavepointId implementation="java.lang.String" default-value="\${rdfio.pipeline.resumeAtSavepointId}"/>
       </configuration>
     </mojo>
   </mojos>
