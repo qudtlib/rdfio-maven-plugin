@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -18,6 +19,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.sparql.graph.PrefixMappingMem;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
@@ -119,6 +121,7 @@ public class WriteStep implements Step {
                         graphNames.add(graph);
                     }
                 }
+                copyNamespaceMappings(dataset, modelToWrite);
                 state.files().writeRdf(outputPath, modelToWrite);
             }
             state.log().info(graphNames.stream().map(name -> "graph: " + name).toList(), 1);
@@ -127,6 +130,17 @@ public class WriteStep implements Step {
         }
 
         state.getPrecedingSteps().add(this);
+    }
+
+    private void copyNamespaceMappings(Dataset dataset, Model modelToWrite) {
+        Iterator<String> it = dataset.listNames();
+        PrefixMappingMem pm = new PrefixMappingMem();
+        while (it.hasNext()) {
+            String graphName = it.next();
+            Model graph = dataset.getNamedModel(graphName);
+            pm.setNsPrefixes(graph);
+        }
+        modelToWrite.setNsPrefixes(pm);
     }
 
     private void writeOneFilePerGraph(
@@ -153,7 +167,9 @@ public class WriteStep implements Step {
                             1);
             RelativePath outputPath = state.files().make(outputFileStr);
             state.files().createParentFolder(outputPath);
-            state.files().writeRdf(outputPath, dataset.getNamedModel(graph));
+            Model model = dataset.getNamedModel(graph);
+            copyNamespaceMappings(dataset, model);
+            state.files().writeRdf(outputPath, model);
         }
     }
 
