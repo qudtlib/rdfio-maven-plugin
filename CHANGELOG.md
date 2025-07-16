@@ -7,14 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.4] - 2025-07-16
 ### Fixed
-
 - Copy namespace prefixes from all models in a dataset to a model when writing it in pipeline step <write>
 
 ## [1.5.3] - 2025-07-15
-
 ### Fixed
-
 - fix ${project.basedir} being baked in at build time
 
 ## [1.5.2] - 2025-07-15
@@ -95,7 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.3...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.4...HEAD
+[1.5.4]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.0...v1.5.1
