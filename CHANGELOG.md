@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Copy namespace prefixes from all models in a dataset to a model when writing it in pipeline step <write>
+
 ## [1.5.3] - 2025-07-15
 
 ### Fixed
