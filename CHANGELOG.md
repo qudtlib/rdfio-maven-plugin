@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- filter validation results by `logSeverity` in `<shaclValidate>` console output
+
 ## [1.5.4] - 2025-07-16
 ### Fixed
 - Copy namespace prefixes from all models in a dataset to a model when writing it in pipeline step <write>

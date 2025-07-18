@@ -2,6 +2,7 @@ package io.github.qudtlib.maven.rdfio.pipeline.step;
 
 import io.github.qudtlib.maven.rdfio.common.file.FileHelper;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
+import io.github.qudtlib.maven.rdfio.common.file.ShaclHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.FileAccess;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
@@ -22,7 +23,6 @@ import org.apache.jena.graph.Graph;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.shacl.ValidationReport;
-import org.apache.jena.shacl.lib.ShLib;
 import org.apache.jena.shacl.validation.Severity;
 import org.apache.jena.shacl.vocabulary.SHACL;
 import org.apache.jena.sparql.graph.GraphFactory;
@@ -250,10 +250,14 @@ public class ShaclValidateStep implements Step {
                 }
             }
             if (summary.buildFails()) {
-                ShLib.printReport(validationReport);
-                throw new MojoExecutionException(String.format("SHACL validation failed"));
+                String report =
+                        ShaclHelper.formatValidationReport(summary.filteredValidationReportModel());
+                state.log().info("");
+                state.log().info(report, 2);
+                state.log().info("");
+                throw new MojoExecutionException(
+                        String.format("SHACL validation failed - see log output"));
             }
-
             state.getPrecedingSteps().add(this);
         } catch (RuntimeException e) {
             throw new MojoExecutionException(
