@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.5] - 2025-07-18
 ### Fixed
-
 - filter validation results by `logSeverity` in `<shaclValidate>` console output
 
 ## [1.5.4] - 2025-07-16
@@ -97,7 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.4...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.5...HEAD
+[1.5.5]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.4...v1.5.5
 [1.5.4]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.1...v1.5.2
