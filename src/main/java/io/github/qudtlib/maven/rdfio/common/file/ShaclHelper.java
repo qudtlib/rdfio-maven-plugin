@@ -62,7 +62,7 @@ public class ShaclHelper {
                                 Message   : %s
 
                                 """
-                                                .formatted(focusNode, severity, resultMessage));
+                                                .formatted(severity, focusNode, resultMessage));
                         sb.append(resultString);
                     }
                 } catch (Exception e) {
