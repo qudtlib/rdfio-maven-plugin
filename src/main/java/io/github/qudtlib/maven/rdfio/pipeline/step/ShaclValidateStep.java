@@ -38,6 +38,8 @@ public class ShaclValidateStep implements Step {
 
     private String message;
 
+    private Boolean failForMissingInputGraph;
+
     private InputsComponent<ShaclValidateStep> shapes;
 
     private InputsComponent<ShaclValidateStep> data;
@@ -58,6 +60,14 @@ public class ShaclValidateStep implements Step {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Boolean getFailForMissingInputGraph() {
+        return failForMissingInputGraph;
+    }
+
+    public void setFailForMissingInputGraph(Boolean failForMissingInputGraph) {
+        this.failForMissingInputGraph = failForMissingInputGraph;
     }
 
     public InputsComponent<ShaclValidateStep> getShapes() {
@@ -115,6 +125,11 @@ public class ShaclValidateStep implements Step {
         // Parse optional message
         ParsingHelper.optionalStringChild(
                 config, "message", step::setMessage, ShaclValidateStep::usage);
+        ParsingHelper.optionalBooleanChild(
+                config,
+                "failForMissingInputGraph",
+                step::setFailForMissingInputGraph,
+                ShaclValidateStep::usage);
         ParsingHelper.optionalDomChild(
                 config,
                 "shapes",
@@ -159,6 +174,9 @@ public class ShaclValidateStep implements Step {
                                 as the shapes graph)
                     - <data>: data sources via <file>, <files>, <graph>, or <graphs> (none to use the default graph
                               as the data graph)
+                    - <failForMissingInputGraph> (default: true): if false, a specified <graph> that is not present in
+                            the dataset (which is the case if that graph was added but is empty as well as if it was not
+                            added) does not cause a build failure
                     - <failForSeverity>: severity, one of Info, Warn, Violation or None if the validation should
                                          not make the build fail. Default: Violation
                     - <logSeverity>: lowest severity (Info < Warn < Violation < None) to print in the maven output on
@@ -342,7 +360,13 @@ public class ShaclValidateStep implements Step {
 
     private Model populateDataModel(Dataset dataset, PipelineState state)
             throws MojoExecutionException {
-        return populateModelFromInputs(dataset, state, this.data, List.of(), "SHACL data");
+        return populateModelFromInputs(
+                dataset,
+                state,
+                this.data,
+                List.of(),
+                "SHACL data",
+                this.getFailForMissingInputGraph());
     }
 
     private Model populateShapesModel(Dataset dataset, PipelineState state) {
@@ -352,7 +376,8 @@ public class ShaclValidateStep implements Step {
                         state,
                         this.shapes,
                         List.of(state.getShaclFunctionsGraph()),
-                        "SHACL shapes");
+                        "SHACL shapes",
+                        getFailForMissingInputGraph());
         return shapesModel;
     }
 
@@ -361,7 +386,8 @@ public class ShaclValidateStep implements Step {
             PipelineState state,
             InputsComponent<ShaclValidateStep> inputsComponent,
             List<String> additionalGraphs,
-            String fileKind) {
+            String fileKind,
+            boolean failForMissingInputGraph) {
         Model dataModel = ModelFactory.createDefaultModel();
         List<String> entries = new ArrayList<>();
         if (inputsComponent == null || inputsComponent.hasNoInputs()) {
@@ -379,7 +405,8 @@ public class ShaclValidateStep implements Step {
                 allGraphs.forEach(
                         g -> {
                             if (!dataset.containsNamedModel(g)
-                                    && !state.getShaclFunctionsGraph().equals(g)) {
+                                    && !state.getShaclFunctionsGraph().equals(g)
+                                    && failForMissingInputGraph) {
                                 throw new PipelineConfigurationExeception(
                                         "No graph %s found in dataset, cannot use in shaclValidate"
                                                 .formatted(g));

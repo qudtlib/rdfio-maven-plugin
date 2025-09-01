@@ -263,6 +263,7 @@ The pipeline is configured under the `<pipeline>` element:
   - `<message>`: Description.
   - `<shapes>`: SHACL shapes.
   - `<data>`: Data sources.
+  - `<failForMissingInputGraph`: don't fail the build if a <graph> is not found in the pipeline dataset
   - `<validationReport>`: Output via `<graph>` and/or `<file>`.
   - `<failOnSeverity>`: Severity to fail build (Info, Warning, Violation, None).
   - `<logSeverity>`: Minimum severity to log.
