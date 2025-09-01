@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Improve formatting of validation report
+
+### Added
+
+- New optional parameter <shaclValidate>/<failForMissingInputGraph> - allow input graphs to be empty in the pipeline dataset
+
 ## [1.5.5] - 2025-07-18
 ### Fixed
 - filter validation results by `logSeverity` in `<shaclValidate>` console output
