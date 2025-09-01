@@ -7,13 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Improve formatting of validation report
-
+## [1.6.0] - 2025-09-01
 ### Added
-
 - New optional parameter <shaclValidate>/<failForMissingInputGraph> - allow input graphs to be empty in the pipeline dataset
+
+### Fixed
+- Improve formatting of validation report
 
 ## [1.5.5] - 2025-07-18
 ### Fixed
@@ -105,7 +104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.5...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.5...v1.6.0
 [1.5.5]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.4...v1.5.5
 [1.5.4]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.2...v1.5.3
