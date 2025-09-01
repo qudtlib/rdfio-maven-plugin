@@ -62,7 +62,7 @@ public class ShaclValidateStepParseTests {
     }
 
     @Test
-    void testParseShaclValidateStepWithFailForMissingInputGraphTrue() throws Exception {
+    void testParseShaclValidateStepWithfailOnMissingInputGraphTrue() throws Exception {
         String xml =
                 """
                 <shaclValidate>
@@ -72,16 +72,16 @@ public class ShaclValidateStepParseTests {
                     <data>
                         <file>data.ttl</file>
                     </data>
-                    <failForMissingInputGraph>true</failForMissingInputGraph>
+                    <failOnMissingInputGraph>true</failOnMissingInputGraph>
                 </shaclValidate>
                 """;
         Xpp3Dom config = buildConfig(xml);
         ShaclValidateStep step = ShaclValidateStep.parse(config);
-        assertTrue(step.isFailForMissingInputGraph(), "failForMissingInputGraph should be true");
+        assertTrue(step.isfailOnMissingInputGraph(), "failOnMissingInputGraph should be true");
     }
 
     @Test
-    void testParseShaclValidateStepWithFailForMissingInputGraphFalse() throws Exception {
+    void testParseShaclValidateStepWithfailOnMissingInputGraphFalse() throws Exception {
         String xml =
                 """
                 <shaclValidate>
@@ -91,16 +91,16 @@ public class ShaclValidateStepParseTests {
                     <data>
                         <file>data.ttl</file>
                     </data>
-                    <failForMissingInputGraph>false</failForMissingInputGraph>
+                    <failOnMissingInputGraph>false</failOnMissingInputGraph>
                 </shaclValidate>
                 """;
         Xpp3Dom config = buildConfig(xml);
         ShaclValidateStep step = ShaclValidateStep.parse(config);
-        assertFalse(step.isFailForMissingInputGraph(), "failForMissingInputGraph should be false");
+        assertFalse(step.isfailOnMissingInputGraph(), "failOnMissingInputGraph should be false");
     }
 
     @Test
-    void testParseShaclValidateStepWithFailForMissingInputGraphDefault() throws Exception {
+    void testParseShaclValidateStepWithfailOnMissingInputGraphDefault() throws Exception {
         String xml =
                 """
                 <shaclValidate>
@@ -114,7 +114,7 @@ public class ShaclValidateStepParseTests {
                 """;
         Xpp3Dom config = buildConfig(xml);
         ShaclValidateStep step = ShaclValidateStep.parse(config);
-        assertTrue(step.isFailForMissingInputGraph(), "failForMissingInputGraph should be true");
+        assertTrue(step.isfailOnMissingInputGraph(), "failOnMissingInputGraph should be true");
     }
 
     @Test

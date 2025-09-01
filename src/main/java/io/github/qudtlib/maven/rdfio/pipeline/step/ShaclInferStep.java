@@ -27,6 +27,8 @@ public class ShaclInferStep implements Step {
     private static final int MAX_INFERENCE_ITERATIONS = 100;
     private String message;
 
+    private Boolean failOnMissingInputGraph = true;
+
     private InputsComponent<ShaclInferStep> shapes;
 
     private InputsComponent<ShaclInferStep> data;
@@ -43,6 +45,14 @@ public class ShaclInferStep implements Step {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Boolean isFailOnMissingInputGraph() {
+        return failOnMissingInputGraph;
+    }
+
+    public void setFailOnMissingInputGraph(Boolean failOnMissingInputGraph) {
+        this.failOnMissingInputGraph = failOnMissingInputGraph;
     }
 
     public InputsComponent<ShaclInferStep> getShapes() {
@@ -100,6 +110,11 @@ public class ShaclInferStep implements Step {
         // Parse optional message
         ParsingHelper.optionalStringChild(
                 config, "message", step::setMessage, ShaclInferStep::usage);
+        ParsingHelper.optionalBooleanChild(
+                config,
+                "failOnMissingInputGraph",
+                step::setFailOnMissingInputGraph,
+                ShaclInferStep::usage);
         ParsingHelper.optionalDomChild(
                 config,
                 "shapes",
@@ -144,6 +159,9 @@ public class ShaclInferStep implements Step {
                     - <message> (optional): a description of the inference step
                     - <shapes>: <file>, <files>, <graph>, or <graphs> for SHACL shapes (none to use the default graph as the shapes graph)
                     - <data>: data sources via <file>, <files>, <graph>, or <graphs> (none to use the default graph as the data graph)
+                    - <failOnMissingInputGraph> (default: true): if false, a specified <graph> that is not present in
+                            the dataset (which is the case if that graph was added but is empty as well as if it was not
+                            added) does not cause a build failure
                     - <inferred>: output via <graph> and/or <file> (none to write inferred triples to the default graph)
                     - <iterateUntilStable> (optional): true to repeat inference until no new triples are added
                     - <iterationOutputFilePattern> (optional): pattern in which the variable ${index} is replaced by the iteration index,
@@ -281,7 +299,8 @@ public class ShaclInferStep implements Step {
 
     private Model populateDataModel(Dataset dataset, PipelineState state)
             throws MojoExecutionException {
-        return populateModelFromInputs(dataset, state, this.data, List.of(), "SHACL data");
+        return populateModelFromInputs(
+                dataset, state, this.data, List.of(), "SHACL data", isFailOnMissingInputGraph());
     }
 
     private Model populateShapesModel(Dataset dataset, PipelineState state) {
@@ -291,7 +310,8 @@ public class ShaclInferStep implements Step {
                         state,
                         this.shapes,
                         List.of(state.getShaclFunctionsGraph()),
-                        "SHACL shapes");
+                        "SHACL shapes",
+                        isFailOnMissingInputGraph());
         return shapesModel;
     }
 
@@ -300,7 +320,8 @@ public class ShaclInferStep implements Step {
             PipelineState state,
             InputsComponent<ShaclInferStep> inputsComponent,
             List<String> additionalGraphs,
-            String fileKind) {
+            String fileKind,
+            boolean failOnMissingInputGraph) {
         Model dataModel = ModelFactory.createDefaultModel();
         List<String> entries = new ArrayList<>();
         if (inputsComponent == null || inputsComponent.hasNoInputs()) {
@@ -318,7 +339,8 @@ public class ShaclInferStep implements Step {
                 allGraphs.forEach(
                         g -> {
                             if (!dataset.containsNamedModel(g)
-                                    && !state.getShaclFunctionsGraph().equals(g)) {
+                                    && !state.getShaclFunctionsGraph().equals(g)
+                                    && failOnMissingInputGraph) {
                                 throw new PipelineConfigurationExeception(
                                         "No graph %s found in dataset, cannot use in shaclInfer"
                                                 .formatted(g));
