@@ -38,7 +38,7 @@ public class ShaclValidateStep implements Step {
 
     private String message;
 
-    private Boolean failForMissingInputGraph;
+    private Boolean failForMissingInputGraph = true;
 
     private InputsComponent<ShaclValidateStep> shapes;
 
@@ -62,7 +62,7 @@ public class ShaclValidateStep implements Step {
         this.message = message;
     }
 
-    public Boolean getFailForMissingInputGraph() {
+    public Boolean isFailForMissingInputGraph() {
         return failForMissingInputGraph;
     }
 
@@ -366,7 +366,7 @@ public class ShaclValidateStep implements Step {
                 this.data,
                 List.of(),
                 "SHACL data",
-                this.getFailForMissingInputGraph());
+                this.isFailForMissingInputGraph());
     }
 
     private Model populateShapesModel(Dataset dataset, PipelineState state) {
@@ -377,7 +377,7 @@ public class ShaclValidateStep implements Step {
                         this.shapes,
                         List.of(state.getShaclFunctionsGraph()),
                         "SHACL shapes",
-                        getFailForMissingInputGraph());
+                        isFailForMissingInputGraph());
         return shapesModel;
     }
 
