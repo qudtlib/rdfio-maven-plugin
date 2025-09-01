@@ -38,7 +38,7 @@ public class ShaclValidateStep implements Step {
 
     private String message;
 
-    private Boolean failForMissingInputGraph = true;
+    private Boolean failOnMissingInputGraph = true;
 
     private InputsComponent<ShaclValidateStep> shapes;
 
@@ -62,12 +62,12 @@ public class ShaclValidateStep implements Step {
         this.message = message;
     }
 
-    public Boolean isFailForMissingInputGraph() {
-        return failForMissingInputGraph;
+    public Boolean isfailOnMissingInputGraph() {
+        return failOnMissingInputGraph;
     }
 
-    public void setFailForMissingInputGraph(Boolean failForMissingInputGraph) {
-        this.failForMissingInputGraph = failForMissingInputGraph;
+    public void setFailOnMissingInputGraph(Boolean failOnMissingInputGraph) {
+        this.failOnMissingInputGraph = failOnMissingInputGraph;
     }
 
     public InputsComponent<ShaclValidateStep> getShapes() {
@@ -127,8 +127,8 @@ public class ShaclValidateStep implements Step {
                 config, "message", step::setMessage, ShaclValidateStep::usage);
         ParsingHelper.optionalBooleanChild(
                 config,
-                "failForMissingInputGraph",
-                step::setFailForMissingInputGraph,
+                "failOnMissingInputGraph",
+                step::setFailOnMissingInputGraph,
                 ShaclValidateStep::usage);
         ParsingHelper.optionalDomChild(
                 config,
@@ -174,7 +174,7 @@ public class ShaclValidateStep implements Step {
                                 as the shapes graph)
                     - <data>: data sources via <file>, <files>, <graph>, or <graphs> (none to use the default graph
                               as the data graph)
-                    - <failForMissingInputGraph> (default: true): if false, a specified <graph> that is not present in
+                    - <failOnMissingInputGraph> (default: true): if false, a specified <graph> that is not present in
                             the dataset (which is the case if that graph was added but is empty as well as if it was not
                             added) does not cause a build failure
                     - <failForSeverity>: severity, one of Info, Warn, Violation or None if the validation should
@@ -366,7 +366,7 @@ public class ShaclValidateStep implements Step {
                 this.data,
                 List.of(),
                 "SHACL data",
-                this.isFailForMissingInputGraph());
+                this.isfailOnMissingInputGraph());
     }
 
     private Model populateShapesModel(Dataset dataset, PipelineState state) {
@@ -377,7 +377,7 @@ public class ShaclValidateStep implements Step {
                         this.shapes,
                         List.of(state.getShaclFunctionsGraph()),
                         "SHACL shapes",
-                        isFailForMissingInputGraph());
+                        isfailOnMissingInputGraph());
         return shapesModel;
     }
 
@@ -387,7 +387,7 @@ public class ShaclValidateStep implements Step {
             InputsComponent<ShaclValidateStep> inputsComponent,
             List<String> additionalGraphs,
             String fileKind,
-            boolean failForMissingInputGraph) {
+            boolean failOnMissingInputGraph) {
         Model dataModel = ModelFactory.createDefaultModel();
         List<String> entries = new ArrayList<>();
         if (inputsComponent == null || inputsComponent.hasNoInputs()) {
@@ -406,7 +406,7 @@ public class ShaclValidateStep implements Step {
                         g -> {
                             if (!dataset.containsNamedModel(g)
                                     && !state.getShaclFunctionsGraph().equals(g)
-                                    && failForMissingInputGraph) {
+                                    && failOnMissingInputGraph) {
                                 throw new PipelineConfigurationExeception(
                                         "No graph %s found in dataset, cannot use in shaclValidate"
                                                 .formatted(g));
