@@ -21,7 +21,7 @@ public class ForEachItemStepParseTests {
     void testParseValidForEach() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="core">
                         <property name="suffix"></property>
                         <property name="dataGraphs">dist:vocab:UNITS.ttl</property>
@@ -45,7 +45,7 @@ public class ForEachItemStepParseTests {
                             <sparql>INSERT DATA { &lt;urn:s&gt; &lt;urn:p&gt; &lt;urn:o&gt; }</sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         ForEachItemStep step = ForEachItemStep.parse(buildConfig(xml));
@@ -74,7 +74,7 @@ public class ForEachItemStepParseTests {
     void testParseForEachWithOptionalMessage() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <message>Processing items</message>
                     <item id="only">
                         <property name="x">val</property>
@@ -84,7 +84,7 @@ public class ForEachItemStepParseTests {
                             <sparql>INSERT DATA { &lt;urn:s&gt; &lt;urn:p&gt; &lt;urn:o&gt; }</sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
         ForEachItemStep step = ForEachItemStep.parse(buildConfig(xml));
         assertEquals("Processing items", step.getMessage());
@@ -94,9 +94,9 @@ public class ForEachItemStepParseTests {
     void testParseForEachMissingBodyThrows() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="core"><property name="x">y</property></item>
-                </forEach>
+                </forEachItem>
                 """;
         assertThrows(
                 ConfigurationParseException.class,
@@ -108,13 +108,13 @@ public class ForEachItemStepParseTests {
     void testParseForEachMissingItemsThrows() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <body>
                         <sparqlUpdate>
                             <sparql>INSERT DATA { &lt;urn:s&gt; &lt;urn:p&gt; &lt;urn:o&gt; }</sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
         assertThrows(
                 ConfigurationParseException.class,
@@ -126,7 +126,7 @@ public class ForEachItemStepParseTests {
     void testParseItemMissingIdThrows() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item>
                         <property name="x">y</property>
                     </item>
@@ -135,7 +135,7 @@ public class ForEachItemStepParseTests {
                             <sparql>INSERT DATA { &lt;urn:s&gt; &lt;urn:p&gt; &lt;urn:o&gt; }</sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
         assertThrows(
                 ConfigurationParseException.class,
@@ -147,7 +147,7 @@ public class ForEachItemStepParseTests {
     void testParsePropertyMissingNameThrows() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="core">
                         <property>value</property>
                     </item>
@@ -156,7 +156,7 @@ public class ForEachItemStepParseTests {
                             <sparql>INSERT DATA { &lt;urn:s&gt; &lt;urn:p&gt; &lt;urn:o&gt; }</sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
         assertThrows(
                 ConfigurationParseException.class,
@@ -168,7 +168,7 @@ public class ForEachItemStepParseTests {
     void testParseUnknownItemChildThrows() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="core">
                         <unknown>foo</unknown>
                     </item>
@@ -177,7 +177,7 @@ public class ForEachItemStepParseTests {
                             <sparql>INSERT DATA { &lt;urn:s&gt; &lt;urn:p&gt; &lt;urn:o&gt; }</sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
         assertThrows(
                 ConfigurationParseException.class,

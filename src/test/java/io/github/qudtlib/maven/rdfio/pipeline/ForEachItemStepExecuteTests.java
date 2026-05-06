@@ -51,7 +51,7 @@ public class ForEachItemStepExecuteTests {
     void testBodyExecutesOncePerItem() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="alpha"><property name="suffix">-alpha</property></item>
                     <item id="beta"><property name="suffix">-beta</property></item>
                     <body>
@@ -61,7 +61,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         parseStep(xml).execute(dataset, state);
@@ -74,7 +74,7 @@ public class ForEachItemStepExecuteTests {
     void testItemIdSubstitution() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="myId"></item>
                     <body>
                         <sparqlUpdate>
@@ -83,7 +83,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         parseStep(xml).execute(dataset, state);
@@ -96,7 +96,7 @@ public class ForEachItemStepExecuteTests {
         // suffix="" should produce graph name without suffix
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="core"><property name="suffix"></property></item>
                     <body>
                         <sparqlUpdate>
@@ -105,7 +105,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         parseStep(xml).execute(dataset, state);
@@ -123,7 +123,7 @@ public class ForEachItemStepExecuteTests {
         // Preamble creates pre:graph, body creates body:graph, postamble creates post:graph.
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="only">
                         <preamble>
                             <sparqlUpdate>
@@ -147,7 +147,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         parseStep(xml).execute(dataset, state);
@@ -162,7 +162,7 @@ public class ForEachItemStepExecuteTests {
         // First item has no preamble; second item has a preamble.
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="no-preamble"></item>
                     <item id="has-preamble">
                         <preamble>
@@ -180,7 +180,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         parseStep(xml).execute(dataset, state);
@@ -200,7 +200,7 @@ public class ForEachItemStepExecuteTests {
         // Each item's body inserts into a graph named by order; we verify by checking all exist.
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="first"></item>
                     <item id="second"></item>
                     <item id="third"></item>
@@ -211,7 +211,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
 
         parseStep(xml).execute(dataset, state);
@@ -225,7 +225,7 @@ public class ForEachItemStepExecuteTests {
     void testStepAddedToPrecedingSteps() throws Exception {
         String xml =
                 """
-                <forEach>
+                <forEachItem>
                     <item id="x"></item>
                     <body>
                         <sparqlUpdate>
@@ -234,7 +234,7 @@ public class ForEachItemStepExecuteTests {
                             ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>
+                </forEachItem>
                 """;
         ForEachItemStep step = parseStep(xml);
         step.execute(dataset, state);

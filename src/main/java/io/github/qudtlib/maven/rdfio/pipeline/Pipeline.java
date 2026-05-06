@@ -173,7 +173,7 @@ public class Pipeline {
                     case "add" -> AddStep.parse(stepDom);
                     case "assert" -> AssertStep.parse(stepDom);
                     case "clear" -> ClearStep.parse(stepDom);
-                    case "forEach" -> ForEachItemStep.parse(stepDom);
+                    case "forEachItem" -> ForEachItemStep.parse(stepDom);
                     case "foreach" -> ForeachStep.parse(stepDom);
                     case "invoke" -> InvokeStep.parse(stepDom);
                     case "stepDef" -> StepDefStep.parse(stepDom);
@@ -197,7 +197,7 @@ public class Pipeline {
                                                 <add>
                                                 <assert>
                                                 <clear>
-                                                <forEach>
+                                                <forEachItem>
                                                 <foreach>
                                                 <invoke>
                                                 <stepDef>

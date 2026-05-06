@@ -28,7 +28,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  * <p>Example:
  *
  * <pre>{@code
- * <forEach>
+ * <forEachItem>
  *     <item id="core">
  *         <property name="suffix"></property>
  *         <property name="dataGraphs">dist:vocab:VOCAB_QUDT-UNITS-ALL.ttl</property>
@@ -48,7 +48,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  *             ...
  *         </shaclInfer>
  *     </body>
- * </forEach>
+ * </forEachItem>
  * }</pre>
  */
 public class ForEachItemStep implements Step {
@@ -119,16 +119,16 @@ public class ForEachItemStep implements Step {
 
     @Override
     public String getElementName() {
-        return "forEach";
+        return "forEachItem";
     }
 
     @Override
     public void execute(Dataset dataset, PipelineState state) throws MojoExecutionException {
         if (items.isEmpty()) {
-            throw new MojoExecutionException("<forEach> requires at least one <item>");
+            throw new MojoExecutionException("<forEachItem> requires at least one <item>");
         }
         if (bodyDom == null || bodyDom.getChildren().length == 0) {
-            throw new MojoExecutionException("<forEach> requires a non-empty <body>");
+            throw new MojoExecutionException("<forEachItem> requires a non-empty <body>");
         }
         if (message != null) {
             state.log().info(message, 1);
@@ -136,7 +136,7 @@ public class ForEachItemStep implements Step {
         state.incIndentLevel();
         try {
             for (Item item : items) {
-                state.log().info("<forEach> item: " + item.getId());
+                state.log().info("<forEachItem> item: " + item.getId());
                 Map<String, String> subs = buildSubstitutions(item);
                 if (item.getPreambleDom() != null) {
                     executeStepsDom(item.getPreambleDom(), subs, dataset, state, "preamble");
@@ -177,12 +177,12 @@ public class ForEachItemStep implements Step {
                                 substituted,
                                 stepDom,
                                 stepDom.getName(),
-                                "forEach",
+                                "forEachItem",
                                 "savepoint",
                                 "stepDef");
             } catch (ConfigurationParseException e) {
                 throw new MojoExecutionException(
-                        "Error parsing <forEach> %s step <%s>: %s"
+                        "Error parsing <forEachItem> %s step <%s>: %s"
                                 .formatted(context, stepDom.getName(), e.getMessage()),
                         e);
             }
@@ -224,7 +224,7 @@ public class ForEachItemStep implements Step {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.update(previousHash.getBytes(StandardCharsets.UTF_8));
-            digest.update("forEach".getBytes(StandardCharsets.UTF_8));
+            digest.update("forEachItem".getBytes(StandardCharsets.UTF_8));
             if (message != null) {
                 digest.update(message.getBytes(StandardCharsets.UTF_8));
             }
@@ -255,7 +255,7 @@ public class ForEachItemStep implements Step {
     public static ForEachItemStep parse(Xpp3Dom config) {
         if (config == null) {
             throw new ConfigurationParseException(
-                    config, "<forEach> configuration is missing.\n" + usage());
+                    config, "<forEachItem> configuration is missing.\n" + usage());
         }
         ForEachItemStep step = new ForEachItemStep();
         ParsingHelper.optionalStringChild(
@@ -264,7 +264,7 @@ public class ForEachItemStep implements Step {
         Xpp3Dom[] itemDoms = config.getChildren("item");
         if (itemDoms.length == 0) {
             throw new ConfigurationParseException(
-                    config, "<forEach> requires at least one <item>.\n" + usage());
+                    config, "<forEachItem> requires at least one <item>.\n" + usage());
         }
         for (Xpp3Dom itemDom : itemDoms) {
             step.addItem(parseItem(itemDom));
@@ -273,7 +273,7 @@ public class ForEachItemStep implements Step {
         Xpp3Dom bodyDom = config.getChild("body");
         if (bodyDom == null || bodyDom.getChildren().length == 0) {
             throw new ConfigurationParseException(
-                    config, "<forEach> requires a <body> with at least one step.\n" + usage());
+                    config, "<forEachItem> requires a <body> with at least one step.\n" + usage());
         }
         step.setBodyDom(bodyDom);
 
@@ -314,14 +314,14 @@ public class ForEachItemStep implements Step {
 
     public static String usage() {
         return """
-                Usage: <forEach> with <item id="..."> children and a shared <body>.
+                Usage: <forEachItem> with <item id="..."> children and a shared <body>.
                 Each <item> may have <property name="propName">value</property> entries
                 and optional <preamble> / <postamble> step lists.
                 Within <preamble>, <body>, and <postamble>, ${item.propName} is substituted
                 with the current item's property value. ${item.id} is always available.
-                <savepoint> and <stepDef> are not allowed inside <forEach>.
+                <savepoint> and <stepDef> are not allowed inside <forEachItem>.
                 Example:
-                <forEach>
+                <forEachItem>
                     <item id="core">
                         <property name="suffix"></property>
                     </item>
@@ -335,6 +335,6 @@ public class ForEachItemStep implements Step {
                             WHERE { ?s ?p ?o } ]]></sparql>
                         </sparqlUpdate>
                     </body>
-                </forEach>""";
+                </forEachItem>""";
     }
 }
