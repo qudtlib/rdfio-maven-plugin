@@ -52,7 +52,11 @@ public class Pipeline {
         this.steps.add(step);
     }
 
-    public void addForEachItemStep(ForEachItemStep step) {
+    public void addEnvStep(EnvStep step) {
+        this.steps.add(step);
+    }
+
+    public void addForEachEnvStep(ForEachEnvStep step) {
         this.steps.add(step);
     }
 
@@ -173,7 +177,8 @@ public class Pipeline {
                     case "add" -> AddStep.parse(stepDom);
                     case "assert" -> AssertStep.parse(stepDom);
                     case "clear" -> ClearStep.parse(stepDom);
-                    case "forEachItem" -> ForEachItemStep.parse(stepDom);
+                    case "env" -> EnvStep.parse(stepDom);
+                    case "forEachEnv" -> ForEachEnvStep.parse(stepDom);
                     case "foreach" -> ForeachStep.parse(stepDom);
                     case "invoke" -> InvokeStep.parse(stepDom);
                     case "stepDef" -> StepDefStep.parse(stepDom);
@@ -197,7 +202,8 @@ public class Pipeline {
                                                 <add>
                                                 <assert>
                                                 <clear>
-                                                <forEachItem>
+                                                <env>
+                                                <forEachEnv>
                                                 <foreach>
                                                 <invoke>
                                                 <stepDef>
