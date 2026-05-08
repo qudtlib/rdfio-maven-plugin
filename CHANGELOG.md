@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0-rc.2] - 2026-05-08
+
 ## [1.6.2] - 2025-09-01
 ### Fixed
 - Rename <shaclValidate>/<failForMissingInputGraph> to <shaclValidate>/<failOnMissingInputGraph>
@@ -113,7 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.7.0-rc.2...HEAD
+[1.7.0-rc.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.2...v1.7.0-rc.2
 [1.6.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.5.5...v1.6.0
