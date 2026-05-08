@@ -8,6 +8,7 @@ import io.github.qudtlib.maven.rdfio.pipeline.PipelineHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.PipelineState;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
 import io.github.qudtlib.maven.rdfio.pipeline.support.ConfigurationParseException;
+import io.github.qudtlib.maven.rdfio.pipeline.support.VariableResolver;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -73,6 +74,9 @@ public class SparqlUpdateStep implements Step {
                 throw new MojoExecutionException(
                         "SPARQL query is required in sparqlUpdate step - neither <sparql> nor <file> element had a query");
             }
+            sparqlString =
+                    VariableResolver.resolveVariables(
+                            sparqlString, dataset, state.getMetadataGraph());
             List<String> graphs = PipelineHelper.getGraphList(dataset);
             SparqlHelper.executeSparqlUpdateWithVariables(
                     sparqlString, dataset, state.getMetadataGraph());

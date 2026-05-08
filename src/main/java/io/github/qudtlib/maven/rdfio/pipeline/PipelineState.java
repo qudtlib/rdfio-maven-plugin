@@ -259,6 +259,16 @@ public class PipelineState {
         }
     }
 
+    private final Map<String, List<Step>> stepDefinitions = new LinkedHashMap<>();
+
+    public void registerStepDef(String id, List<Step> steps) {
+        stepDefinitions.put(id, steps);
+    }
+
+    public List<Step> getStepDef(String id) {
+        return stepDefinitions.get(id);
+    }
+
     private VariableResolver variableResolver;
 
     public void incIndentLevel() {
