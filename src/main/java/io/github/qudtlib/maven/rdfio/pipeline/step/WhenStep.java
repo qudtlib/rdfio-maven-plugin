@@ -58,7 +58,7 @@ public class WhenStep implements Step {
             state.log().info(state.variables().resolve(message, dataset), 1);
         }
         boolean[] result = new boolean[] {false};
-        String sparqlAskString = this.sparqlAsk;
+        String sparqlAskString = state.variables().resolve(this.sparqlAsk, dataset);
         SparqlHelper.executeSparqlQueryWithVariables(
                 sparqlAskString,
                 dataset,
