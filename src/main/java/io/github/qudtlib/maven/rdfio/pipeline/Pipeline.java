@@ -44,6 +44,22 @@ public class Pipeline {
         this.steps.add(step);
     }
 
+    public void addStepDefStep(StepDefStep step) {
+        this.steps.add(step);
+    }
+
+    public void addInvokeStep(InvokeStep step) {
+        this.steps.add(step);
+    }
+
+    public void addEnvStep(EnvStep step) {
+        this.steps.add(step);
+    }
+
+    public void addForEachEnvStep(ForEachEnvStep step) {
+        this.steps.add(step);
+    }
+
     public String getId() {
         return id;
     }
@@ -161,7 +177,11 @@ public class Pipeline {
                     case "add" -> AddStep.parse(stepDom);
                     case "assert" -> AssertStep.parse(stepDom);
                     case "clear" -> ClearStep.parse(stepDom);
+                    case "env" -> EnvStep.parse(stepDom);
+                    case "forEachEnv" -> ForEachEnvStep.parse(stepDom);
                     case "foreach" -> ForeachStep.parse(stepDom);
+                    case "invoke" -> InvokeStep.parse(stepDom);
+                    case "stepDef" -> StepDefStep.parse(stepDom);
                     case "when" -> WhenStep.parse(stepDom);
                     case "savepoint" -> SavepointStep.parse(stepDom);
                     case "shaclFunctions" -> ShaclFunctionsStep.parse(stepDom);
@@ -182,7 +202,11 @@ public class Pipeline {
                                                 <add>
                                                 <assert>
                                                 <clear>
+                                                <env>
+                                                <forEachEnv>
                                                 <foreach>
+                                                <invoke>
+                                                <stepDef>
                                                 <if>
                                                 <savepoint>
                                                 <shaclFunctions>
