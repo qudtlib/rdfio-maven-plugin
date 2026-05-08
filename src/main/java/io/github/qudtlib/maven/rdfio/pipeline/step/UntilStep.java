@@ -87,7 +87,7 @@ public class UntilStep implements Step {
                 for (Step step : body) {
                     step.executeAndWrapException(dataset, state);
                 }
-                String sparqlAskString = this.sparqlAsk;
+                String sparqlAskString = state.variables().resolve(this.sparqlAsk, dataset);
                 SparqlHelper.executeSparqlQueryWithVariables(
                         sparqlAskString,
                         dataset,

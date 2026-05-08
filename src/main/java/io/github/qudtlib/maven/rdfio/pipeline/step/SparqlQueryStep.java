@@ -113,6 +113,7 @@ public class SparqlQueryStep implements Step {
                 throw new MojoExecutionException(
                         "SPARQL query is required in sparqlQuery step - neither <sparql> nor <file> element had a query");
             }
+            sparqlString = state.variables().resolve(sparqlString, dataset);
             SparqlHelper.QueryResultProcessor resultProcessor =
                     new SparqlHelper.QueryResultProcessor() {
                         @Override
