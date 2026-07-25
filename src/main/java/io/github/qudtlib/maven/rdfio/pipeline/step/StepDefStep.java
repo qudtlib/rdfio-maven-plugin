@@ -28,8 +28,12 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  * }</pre>
  *
  * The {@code <stepDef>} must appear before any {@code <invoke>} that references it.
+ *
+ * <p>Registration happens before savepoint evaluation (see {@link
+ * ExecuteBeforeSavepointEvaluation}), so an {@code <invoke>} still works when the pipeline resumes
+ * at a {@code <savepoint>} that follows the {@code <stepDef>}.
  */
-public class StepDefStep implements Step {
+public class StepDefStep implements ExecuteBeforeSavepointEvaluation {
     private String id;
     private final List<Step> steps = new ArrayList<>();
 

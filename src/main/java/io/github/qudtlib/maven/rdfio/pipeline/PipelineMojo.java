@@ -3,6 +3,7 @@ package io.github.qudtlib.maven.rdfio.pipeline;
 import io.github.qudtlib.maven.rdfio.common.RDFIO;
 import io.github.qudtlib.maven.rdfio.common.file.RelativePath;
 import io.github.qudtlib.maven.rdfio.common.sparql.SparqlHelper;
+import io.github.qudtlib.maven.rdfio.pipeline.step.ExecuteBeforeSavepointEvaluation;
 import io.github.qudtlib.maven.rdfio.pipeline.step.SavepointStep;
 import io.github.qudtlib.maven.rdfio.pipeline.step.Step;
 import io.github.qudtlib.maven.rdfio.pipeline.step.support.ParsingHelper;
@@ -137,6 +138,15 @@ public class PipelineMojo extends AbstractMojo {
             updatePipelineState(state, project);
             state.setAllowLoadingFromSavepoint(!pipeline.isForceRun());
 
+            // Execute steps that must run before savepoint evaluation, such as <stepDef>
+            // registration. Resuming at a savepoint skips all preceding steps, which would
+            // otherwise leave the state they establish unavailable to later steps.
+            for (Step step : pipeline.getSteps()) {
+                if (step instanceof ExecuteBeforeSavepointEvaluation) {
+                    step.executeAndWrapException(dataset, state);
+                }
+            }
+
             int startIndex = -1;
             List<String> stepHashes = new ArrayList<>();
 
@@ -254,6 +264,11 @@ public class PipelineMojo extends AbstractMojo {
                 Step step = pipeline.getSteps().get(i);
                 state.setPreviousStepHash(previousHash);
                 previousHash = step.calculateHash(previousHash, state);
+                if (step instanceof ExecuteBeforeSavepointEvaluation) {
+                    // already executed before savepoint evaluation; the hash chain is still
+                    // advanced above so savepoint validity is unaffected
+                    continue;
+                }
                 step.executeAndWrapException(dataset, state);
             }
         } catch (Throwable throwable) {

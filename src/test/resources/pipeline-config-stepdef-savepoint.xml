@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <pipeline>
+        <id>stepdef-savepoint-pipeline</id>
+        <steps>
+            <stepDef id="add-invoked-triple">
+                <sparqlUpdate>
+                    <sparql>INSERT DATA { GRAPH &lt;test:invoked&gt; { &lt;http://example.org/invoked&gt; &lt;http://example.org/p&gt; &lt;http://example.org/o&gt; } }</sparql>
+                </sparqlUpdate>
+            </stepDef>
+            <add>
+                <file>src/test/resources/data.ttl</file>
+                <toGraph>test:graph</toGraph>
+            </add>
+            <savepoint>
+                <id>spBeforeInvoke</id>
+            </savepoint>
+            <invoke stepRef="add-invoked-triple"/>
+            <write>
+                <graph>test:invoked</graph>
+                <toFile>target/stepdef-savepoint-invoked.ttl</toFile>
+            </write>
+        </steps>
+    </pipeline>
+</configuration>

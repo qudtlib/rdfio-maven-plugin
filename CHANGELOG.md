@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- `<stepDef>` registrations are no longer lost when the pipeline resumes from a `<savepoint>`. Resuming skips all steps preceding the savepoint, which skipped the `<stepDef>` registration itself and made any later `<invoke>` fail with "no `<stepDef id="...">` has been registered". Steps implementing the new marker interface `ExecuteBeforeSavepointEvaluation` (currently `StepDefStep`) are now executed before savepoint evaluation and skipped by the main execution loop. Step hashes and savepoint validity are unaffected.
 
 ## [1.7.0] - 2026-05-09
 
