@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.7.1] - 2026-08-04
 ### Fixed
 - `<stepDef>` registrations are no longer lost when the pipeline resumes from a `<savepoint>`. Resuming skips all steps preceding the savepoint, which skipped the `<stepDef>` registration itself and made any later `<invoke>` fail with "no `<stepDef id="...">` has been registered". Steps implementing the new marker interface `ExecuteBeforeSavepointEvaluation` (currently `StepDefStep`) are now executed before savepoint evaluation and skipped by the main execution loop. Step hashes and savepoint validity are unaffected.
 
@@ -117,7 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial version of the plugin offering just making a single RDF file as the combination of multiple files.
 
-[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.2...v1.7.0
 [1.6.2]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/qudtlib/rdfio-maven-plugin/compare/v1.6.0...v1.6.1
